@@ -6,6 +6,7 @@ import { ToastProvider } from "./components/Toast";
 import { ConfirmProvider, Spinner } from "./components/ui";
 import { Layout } from "./components/Layout";
 import Login from "./pages/Login";
+import SetPassword from "./pages/SetPassword";
 
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Projects = lazy(() => import("./pages/Projects"));
@@ -19,6 +20,7 @@ function Gate() {
   const { session, me, loading } = useAuth();
   if (loading) return <Spinner label="Starting" />;
   if (!session || !me) return <Login />;
+  if (me.must_change_password) return <SetPassword />;
   return (
     <StoreProvider>
       <Suspense fallback={<Spinner />}>

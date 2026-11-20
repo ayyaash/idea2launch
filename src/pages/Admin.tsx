@@ -258,14 +258,14 @@ function EditPersonModal({ person, onClose }: { person: Profile | null; onClose:
 function CredentialsModal({ creds, onClose }: { creds: { username: string; password: string; name: string } | null; onClose: () => void }) {
   const toast = useToast();
   if (!creds) return null;
-  const text = `Idea2Launch sign-in for ${creds.name}\nLink: ${window.location.origin}\nUsername: ${creds.username}\nPassword: ${creds.password}`;
+  const text = `Idea2Launch sign-in for ${creds.name}\nLink: ${window.location.origin}\nUsername: ${creds.username}\nPassword: ${creds.password}\n(You'll choose your own password when you sign in.)`;
   return (
     <Modal open onClose={onClose} title="Share these sign-in details"
       footer={<>
         <Button icon={<Copy className="size-4" />} onClick={async () => { await navigator.clipboard.writeText(text); toast.success("Copied"); }}>Copy</Button>
         <Button variant="primary" onClick={onClose}>Done</Button>
       </>}>
-      <p className="mb-3 text-sm text-slate-600">Send these to {creds.name} privately. You won't be able to see this password again, but you can always reset it.</p>
+      <p className="mb-3 text-sm text-slate-600">Send these to {creds.name} privately. This is a one-time password: they'll be asked to choose their own when they sign in. You won't see it again, but you can always reset it.</p>
       <pre className="rounded-lg bg-slate-50 p-3 font-mono text-sm whitespace-pre-wrap ring-1 ring-slate-200">{text}</pre>
     </Modal>
   );

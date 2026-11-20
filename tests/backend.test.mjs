@@ -238,3 +238,32 @@ test("project phases", async () => {
   assert.ok(error, "people not on a project cannot add phases");
   ok(await people.cora.from("project_sections").insert({ project_id: ids.p1, name: "Extra", sort_order: 9 }));
 });
+
+test("new people and admin resets must choose their own password", async () => {
+  const name = u("newbie");
+  const r = await fn(people.admin, { action: "create", username: name, password: PW, full_name: "Newbie", role: "member" });
+  assert.equal(r.ok, true, JSON.stringify(r));
+  const c = await signIn(name);
+  const { data: { user } } = await c.auth.getUser();
+  let me = ok(await c.from("profiles").select("must_change_password").eq("id", user.id).single());
+  assert.equal(me.must_change_password, true);
+
+  // a member can't switch the flag on for anyone (or themselves)
+  const sneaky = await people.mo.from("profiles").update({ must_change_password: true }).eq("id", user.id).select();
+  assert.equal((sneaky.data ?? []).length, 0);
+
+  ok(await c.auth.updateUser({ password: "MyOwnPass1!" }));
+  ok(await c.rpc("password_changed"));
+  me = ok(await c.from("profiles").select("must_change_password").eq("id", user.id).single());
+  assert.equal(me.must_change_password, false);
+
+  // admin reset turns it back on; the admin's own account is never flagged
+  const reset = await fn(people.admin, { action: "reset_password", user_id: user.id, password: "TempPass99" });
+  assert.equal(reset.ok, true, JSON.stringify(reset));
+  const c2 = await signIn(name, "TempPass99");
+  me = ok(await c2.from("profiles").select("must_change_password").eq("id", user.id).single());
+  assert.equal(me.must_change_password, true);
+  const { data: { user: adminUser } } = await people.admin.auth.getUser();
+  const adm = ok(await service.from("profiles").select("must_change_password").eq("id", adminUser.id).single());
+  assert.equal(adm.must_change_password, false);
+});

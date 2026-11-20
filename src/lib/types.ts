@@ -10,6 +10,7 @@ export interface Profile {
   job_title: string;
   role: Role;
   is_active: boolean;
+  must_change_password: boolean;
   color: string;
   created_at: string;
 }

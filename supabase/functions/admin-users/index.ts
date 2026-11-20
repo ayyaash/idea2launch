@@ -130,8 +130,8 @@ Deno.serve(async (req) => {
           job_title: String(body.job_title ?? "").trim(),
         },
       });
-      // set role explicitly (new accounts default to member)
-      await api.updateProfile(user.id, { role });
+      // set role explicitly (new accounts default to member); they choose their own password at first sign-in
+      await api.updateProfile(user.id, { role, must_change_password: true });
       return reply({ ok: true, id: user.id });
     }
 
@@ -142,6 +142,8 @@ Deno.serve(async (req) => {
       const password = String(body.password ?? "");
       if (password.length < 8) return reply({ error: "Password must be at least 8 characters" }, 400);
       await api.updateUser(userId, { password });
+      // the person must choose a new password the next time they sign in
+      if (userId !== caller.id) await api.updateProfile(userId, { must_change_password: true });
       return reply({ ok: true });
     }
 

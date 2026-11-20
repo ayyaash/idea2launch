@@ -8,7 +8,7 @@
 - **Phases**: each project is split into phases such as Planning, Research, Development, Testing and Launch. Teams can rename, reorder and add phases.
 - **Views**: a list grouped by phase or by status, a drag-and-drop board, a timeline, and a "My tasks" page.
 - **Workload**: open tasks per person per week, with anyone over the limit (25 by default) flagged red.
-- **Admin panel**: add people with a username and password, reset passwords, turn accounts off, change roles, and manage categories and settings.
+- **Admin panel**: add people with a username and a one-time password (they choose their own at first sign-in, and again after a reset), reset passwords, turn accounts off, change roles, and manage categories and settings.
 - **Roles**: Admin, Manager, Project Coordinator, Member and Viewer. Everyone can see all projects; only people assigned to a project can edit it; Admins and Managers control every project.
 - In-app notifications and Excel export.
 
