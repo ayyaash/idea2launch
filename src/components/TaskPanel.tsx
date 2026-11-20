@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
-  X, Copy, Trash2, CheckCircle2, Circle, Paperclip, Download, Link2, MessageSquare, ListTree, Lock, ArrowRight, Plus, MoreHorizontal,
+  X, Copy, Trash2, CheckCircle2, Circle, Paperclip, Download, Link2, MessageSquare, ListTree, Lock, ArrowRight, Plus, MoreHorizontal, Clock,
 } from "lucide-react";
 import { useStore } from "../lib/store";
 import { useAuth } from "../lib/auth";
@@ -15,6 +15,7 @@ import { Avatar, Button, IconButton, Input, Select, Textarea, cx, useConfirm } f
 import { PeoplePicker, PersonChip, PersonSelect } from "./pickers";
 import { useToast } from "./Toast";
 import { CopyTaskModal } from "./CopyTaskModal";
+import { TaskTime } from "./TimeTracking";
 
 /** Renders the task side panel whenever the URL has ?task=<id>. */
 export function TaskPanelHost() {
@@ -262,6 +263,11 @@ function TaskPanel({ taskId, onClose }: { taskId: string; onClose: () => void })
             )}
           </ul>
           {task.parent_id && <p className="mt-1 text-xs text-slate-500">Subtasks can't have their own subtasks.</p>}
+        </Section>
+
+        {/* time */}
+        <Section title="Time" icon={<Clock className="size-4" />}>
+          <TaskTime task={task} canEdit={canEdit} />
         </Section>
 
         {/* dependencies */}

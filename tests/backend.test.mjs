@@ -322,3 +322,51 @@ test("members add projects that wait for approval; delete rights", async () => {
   assert.deepEqual(r, { approval: "rejected", review_note: "Merge with P1" });
   assert.equal(ok(await people.nia.from("projects").select("id").eq("id", rp.id)).length, 0);
 });
+
+test("time tracking: estimates, logs, timer and who can change them", async () => {
+  const proj = ok(await people.admin.from("projects").insert({ code: "T-" + run, name: "Timed project" }).select().single());
+  const t = ok(await people.nia.from("tasks").insert({ project_id: proj.id, title: "Measure", estimate_minutes: 240 }).select().single());
+  assert.equal(t.estimate_minutes, 240);
+  const sub = ok(await people.nia.from("tasks").insert({ project_id: proj.id, parent_id: t.id, title: "Sub", estimate_minutes: 60 }).select().single());
+
+  // nia logs her own time; project_id is filled from the task
+  const e1 = ok(await people.nia.from("time_entries").insert({ task_id: t.id, minutes: 90, note: "bench test" }).select().single());
+  assert.equal(e1.project_id, proj.id);
+  assert.equal(e1.user_id, ids.nia);
+  ok(await people.nia.from("time_entries").insert({ task_id: sub.id, minutes: 30 }));
+  // limits: no zero, no more than 24h in one log
+  assert.ok((await people.nia.from("time_entries").insert({ task_id: t.id, minutes: 0 })).error);
+  assert.ok((await people.nia.from("time_entries").insert({ task_id: t.id, minutes: 1500 })).error);
+  // nobody logs time for someone else, except admins/managers
+  assert.ok((await people.nia.from("time_entries").insert({ task_id: t.id, minutes: 10, user_id: ids.max })).error);
+  ok(await people.mia.from("time_entries").insert({ task_id: t.id, minutes: 15, user_id: ids.nia }));
+  // viewers can read but not log
+  const valRead = ok(await people.val.from("time_entries").select("minutes").eq("project_id", proj.id));
+  assert.equal(valRead.reduce((a, r) => a + r.minutes, 0), 135);
+  assert.ok((await people.val.from("time_entries").insert({ task_id: t.id, minutes: 10 })).error);
+  // others can't edit or delete nia's log; a manager can
+  const upd = await people.max.from("time_entries").update({ minutes: 5 }).eq("id", e1.id).select();
+  assert.equal(upd.data?.length ?? 0, 0);
+  const del = await people.max.from("time_entries").delete().eq("id", e1.id).select();
+  assert.equal(del.data?.length ?? 0, 0);
+  const fixed = ok(await people.mia.from("time_entries").update({ minutes: 120 }).eq("id", e1.id).select());
+  assert.equal(fixed[0].minutes, 120);
+
+  // timer: start, only one running, stop turns it into a log
+  ok(await people.nia.rpc("start_timer", { p_task: t.id }));
+  ok(await people.nia.rpc("start_timer", { p_task: sub.id }));
+  const running = ok(await people.nia.from("time_entries").select("*").is("minutes", null).eq("user_id", ids.nia));
+  assert.equal(running.length, 1, "only one running timer");
+  assert.equal(running[0].task_id, sub.id);
+  const stopped = ok(await people.nia.rpc("stop_timer", { p_note: "done" }));
+  const row = ok(await people.nia.from("time_entries").select("*").eq("id", stopped).single());
+  assert.ok(row.minutes >= 1);
+  assert.equal(row.note, "done");
+  // viewers can't start timers
+  assert.ok((await people.val.rpc("start_timer", { p_task: t.id })).error);
+
+  // deleting a task deletes its time
+  ok(await people.admin.from("tasks").delete().eq("id", t.id));
+  const left = ok(await people.admin.from("time_entries").select("id").eq("project_id", proj.id));
+  assert.equal(left.length, 0);
+});

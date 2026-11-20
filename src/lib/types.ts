@@ -70,6 +70,20 @@ export interface Task {
   created_by: string | null;
   created_at: string;
   updated_at: string;
+  estimate_minutes: number | null;
+}
+
+export interface TimeEntry {
+  id: string;
+  task_id: string;
+  project_id: string;
+  user_id: string;
+  entry_date: string;
+  /** null while the timer is running */
+  minutes: number | null;
+  started_at: string | null;
+  note: string;
+  created_at: string;
 }
 
 export interface Collaborator {

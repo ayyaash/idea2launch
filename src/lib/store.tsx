@@ -3,7 +3,7 @@ import { supabase, fetchAll, errorText } from "./supabase";
 import { useAuth } from "./auth";
 import { useToast } from "../components/Toast";
 import type {
-  Category, Collaborator, Dependency, Notification, Profile, Project, ProjectMember, Section, Settings, Task,
+  Category, Collaborator, Dependency, Notification, Profile, Project, ProjectMember, Section, Settings, Task, TimeEntry,
 } from "./types";
 
 const DEFAULT_SETTINGS: Settings = { overload_threshold: 25, max_upload_mb: 10, company_name: "Idea2Launch", week_starts_on: 1, default_phases: [] };
@@ -19,6 +19,7 @@ interface Data {
   collaborators: Collaborator[];
   dependencies: Dependency[];
   notifications: Notification[];
+  timeEntries: TimeEntry[];
   settings: Settings;
 }
 
@@ -41,7 +42,7 @@ const StoreContext = createContext<Store | null>(null);
 
 const EMPTY: Data = {
   ready: false, profiles: [], categories: [], projects: [], members: [], sections: [], tasks: [], collaborators: [],
-  dependencies: [], notifications: [], settings: DEFAULT_SETTINGS,
+  dependencies: [], notifications: [], timeEntries: [], settings: DEFAULT_SETTINGS,
 };
 
 export function StoreProvider({ children }: { children: ReactNode }) {
@@ -72,10 +73,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         fetchAll<Dependency>((a, b) => supabase.from("task_dependencies").select("task_id,depends_on_id").range(a, b)),
         fetchAll<{ key: string; value: unknown }>((a, b) => supabase.from("app_settings").select("key,value").range(a, b)),
       ]);
+      // Time logs are optional: an older database without the table still loads.
+      const timeEntries = await fetchAll<TimeEntry>((a, b) => supabase.from("time_entries").select("*").order("entry_date").range(a, b))
+        .catch(() => [] as TimeEntry[]);
       const settings = { ...DEFAULT_SETTINGS } as Record<string, unknown>;
       for (const r of settingsRows) settings[r.key] = r.value;
       setData((d) => ({
-        ...d, ready: true, profiles, categories, projects, members, sections, tasks, collaborators, dependencies,
+        ...d, ready: true, profiles, categories, projects, members, sections, tasks, collaborators, dependencies, timeEntries,
         settings: settings as unknown as Settings,
       }));
     } catch (e) {

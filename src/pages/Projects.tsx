@@ -7,6 +7,7 @@ import { PROJECT_STATUSES, PROJECT_STATUS_LABEL, fmtShort } from "../lib/format"
 import { inYear, progressOf } from "../lib/metrics";
 import { canCreateProject } from "../lib/perms";
 import { ApprovalPill } from "../components/Approval";
+import { ProjectTimeText } from "../components/TimeReports";
 import { exportToExcel } from "../lib/excel";
 import type { ProjectStatus } from "../lib/types";
 import { Avatar, AvatarStack, Button, Card, EmptyState, Input, PageHeader, Select, Spinner } from "../components/ui";
@@ -114,6 +115,7 @@ export default function Projects() {
                       <span className="h-1.5 w-16 overflow-hidden rounded-full bg-slate-100"><span className="block h-full bg-emerald-500" style={{ width: `${prog.pct}%` }} /></span>
                       <span className="text-xs text-slate-500 tabular-nums">{prog.pct}%</span>
                     </span>
+                    <span className="lg:col-start-7 lg:-mt-1"><ProjectTimeText projectId={p.id} /></span>
                   </Link>
                 </li>
               );
