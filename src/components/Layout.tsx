@@ -41,9 +41,9 @@ export function Layout() {
       <aside className={cx(
         "fixed inset-y-0 left-0 z-40 flex w-64 flex-col bg-navy-950 text-navy-100 transition-transform lg:static lg:translate-x-0",
         navOpen ? "translate-x-0" : "-translate-x-full")}>
-        <div className="flex items-center justify-between px-4 pt-4 pb-3">
-          <NavLink to="/" className="block rounded-lg bg-white px-3 py-2">
-            <img src="/logo.png" alt={settings.company_name || "Idea2Launch"} className="h-9 w-auto" />
+        <div className="flex items-center gap-2 px-3 pt-4 pb-3">
+          <NavLink to="/" className="block min-w-0 flex-1 rounded-xl bg-white px-3 py-2">
+            <img src="/logo.png" alt={settings.company_name || "Idea2Launch"} className="h-auto w-full" />
           </NavLink>
           <button className="text-navy-200 lg:hidden" aria-label="Close menu" onClick={() => setNavOpen(false)}><X className="size-5" /></button>
         </div>
