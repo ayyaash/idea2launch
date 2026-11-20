@@ -11,7 +11,7 @@ export const supabase = createClient(url || "http://localhost:54321", key || "mi
 
 /** People sign in with a username; Supabase Auth stores it as a private e-mail-shaped login. */
 export const LOGIN_DOMAIN = "idea2launch.local";
-export const usernameToLogin = (username: string) => `${username.trim().toLowerCase()}@${LOGIN_DOMAIN}`;
+export const usernameToLogin = (username: string) => `${username.trim().toLowerCase().replace(/@.*$/, "")}@${LOGIN_DOMAIN}`;
 
 /** Supabase returns at most 1000 rows per request; page through everything. */
 export async function fetchAll<T>(

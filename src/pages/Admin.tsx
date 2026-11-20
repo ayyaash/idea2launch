@@ -143,53 +143,44 @@ function PeopleAdmin() {
 }
 
 function AddPersonModal({ open, onClose, onCreated }: { open: boolean; onClose: () => void; onCreated: (c: { username: string; password: string; name: string }) => void }) {
-  const [name, setName] = useState("");
   const [username, setUsername] = useState("");
-  const [touchedUser, setTouchedUser] = useState(false);
-  const [title, setTitle] = useState("");
   const [role, setRole] = useState<Role>("member");
   const [password, setPassword] = useState(makePassword());
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
 
   useEffect(() => {
-    if (open) { setName(""); setUsername(""); setTouchedUser(false); setTitle(""); setRole("member"); setPassword(makePassword()); setErr(""); }
+    if (open) { setUsername(""); setRole("member"); setPassword(makePassword()); setErr(""); }
   }, [open]);
-  useEffect(() => {
-    if (!touchedUser) setUsername(name.trim().toLowerCase().replace(/\s+/g, ".").replace(/[^a-z0-9._-]/g, "").slice(0, 32));
-  }, [name, touchedUser]);
 
   async function save() {
     setErr("");
-    if (!name.trim()) return setErr("Enter the person's name.");
     if (!/^[a-z0-9._-]{3,32}$/.test(username)) return setErr("Username must be 3 to 32 characters: lowercase letters, numbers, dot, dash or underscore.");
     if (password.length < 8) return setErr("Password must be at least 8 characters.");
     setBusy(true);
-    const r = await callAdmin({ action: "create", username, password, full_name: name.trim(), job_title: title.trim(), role });
+    const r = await callAdmin({ action: "create", username, password, role });
     setBusy(false);
     if (r.error) return setErr(r.error);
-    onCreated({ username, password, name: name.trim() });
+    onCreated({ username, password, name: username });
   }
 
   return (
     <Modal open={open} onClose={onClose} title="Add a person"
       footer={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" loading={busy} onClick={save}>Create account</Button></>}>
       <div className="space-y-4">
-        <Field label="Full name"><Input autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Nimal Perera" /></Field>
         <Field label="Username" hint="They'll sign in with this. Lowercase, no spaces.">
-          <Input value={username} onChange={(e) => { setTouchedUser(true); setUsername(e.target.value.toLowerCase()); }} autoComplete="off" />
+          <Input autoFocus value={username} onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/\s+/g, ""))} autoComplete="off" placeholder="e.g. nimal" />
         </Field>
-        <Field label="Job title (optional)"><Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Electronics engineer" /></Field>
-        <Field label="Role" hint={ROLE_HELP[role]}>
-          <Select value={role} onChange={(e) => setRole(e.target.value as Role)}>
-            {ROLES.map((r) => <option key={r} value={r}>{ROLE_LABEL[r]}</option>)}
-          </Select>
-        </Field>
-        <Field label="Password" hint="At least 8 characters. They can change it later from My account.">
+        <Field label="Password" hint="A one-time password. At first sign-in they enter their name and choose their own password.">
           <div className="flex gap-2">
             <Input value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" className="font-mono" />
             <IconButton label="Generate a new password" onClick={() => setPassword(makePassword())} className="ring-1 ring-slate-300"><RefreshCw className="size-4" /></IconButton>
           </div>
+        </Field>
+        <Field label="Role" hint={ROLE_HELP[role]}>
+          <Select value={role} onChange={(e) => setRole(e.target.value as Role)}>
+            {ROLES.map((r) => <option key={r} value={r}>{ROLE_LABEL[r]}</option>)}
+          </Select>
         </Field>
         {err && <p className="text-sm text-red-600">{err}</p>}
       </div>
