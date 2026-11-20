@@ -4,7 +4,7 @@ import {
 } from "date-fns";
 import { AlertTriangle, Download } from "lucide-react";
 import { useStore } from "../lib/store";
-import { fmtMinutes, loggedByTask, entryMinutes, setTotals, taskTotals, totals, toHours } from "../lib/time";
+import { fmtMinutes, loggedByTask, entryMinutes, setTotals, taskTotals, totals, toDays } from "../lib/time";
 import type { Project, Task, TimeEntry } from "../lib/types";
 import { Avatar, Button, Card, Input, Select, cx } from "./ui";
 import { TimeBar, useNow } from "./TimeTracking";
@@ -96,7 +96,7 @@ export function WeeklyChart({ entries, now }: { entries: TimeEntry[]; now: numbe
     <div className="flex h-44 items-end gap-1 overflow-x-auto pt-4">
       {weeks.map((w) => (
         <div key={w.key} className="flex min-w-7 flex-1 flex-col items-center gap-1" title={`Week of ${w.label}: ${fmtMinutes(w.min)}`}>
-          <span className="text-[10px] text-slate-500 tabular-nums">{w.min ? toHours(w.min) : ""}</span>
+          <span className="text-[10px] text-slate-500 tabular-nums">{w.min ? toDays(w.min) : ""}</span>
           <div className="w-full rounded-t bg-brand-500/85" style={{ height: `${(w.min / max) * 110}px` }} />
           <span className="text-[10px] whitespace-nowrap text-slate-500">{w.label}</span>
         </div>
@@ -196,7 +196,7 @@ export function ProjectTime({ project }: { project: Project }) {
             <PeopleBreakdown entries={entries} now={now} />
           </Card>
           <Card className="p-4">
-            <h3 className="font-semibold text-slate-900">Hours per week</h3>
+            <h3 className="font-semibold text-slate-900">Days logged per week</h3>
             <WeeklyChart entries={entries} now={now} />
           </Card>
         </div>

@@ -349,6 +349,7 @@ function SettingsAdmin() {
   const [maxMb, setMaxMb] = useState(String(store.settings.max_upload_mb));
   const [company, setCompany] = useState(store.settings.company_name);
   const [weekStart, setWeekStart] = useState(String(store.settings.week_starts_on));
+  const [dayHours, setDayHours] = useState(String(store.settings.hours_per_day ?? 8));
   const [phases, setPhases] = useState((Array.isArray(store.settings.default_phases) ? store.settings.default_phases : []).join("\n"));
   const [busy, setBusy] = useState(false);
 
@@ -356,8 +357,11 @@ function SettingsAdmin() {
     const t = Number(threshold), mb = Number(maxMb);
     if (!Number.isInteger(t) || t < 1 || t > 500) return toast.error("Overload limit must be a whole number from 1 to 500.");
     if (!Number.isInteger(mb) || mb < 1 || mb > 50) return toast.error("File size limit must be a whole number from 1 to 50 MB.");
+    const dh = Number(dayHours);
+    if (!(dh > 0 && dh <= 24)) return toast.error("A working day must be between 1 and 24 hours.");
     setBusy(true);
     const rows = [
+      { key: "hours_per_day", value: dh },
       { key: "overload_threshold", value: t },
       { key: "company_name", value: company.trim() || "Idea2Launch" },
       { key: "week_starts_on", value: Number(weekStart) },
@@ -379,6 +383,9 @@ function SettingsAdmin() {
         </Field>
         <Field label="Largest file people can attach (MB)" hint="Between 1 and 50 MB. Supabase's free plan includes 1 GB of file storage in total.">
           <Input type="number" min={1} max={50} value={maxMb} onChange={(e) => setMaxMb(e.target.value)} className="max-w-32" />
+        </Field>
+        <Field label="Hours in a working day" hint="Time is shown in days. With 8, a 4-hour log shows as 0.5 days.">
+          <Input type="number" min={1} max={24} step={0.5} value={dayHours} onChange={(e) => setDayHours(e.target.value)} className="max-w-32" />
         </Field>
         <Field label="Week starts on">
           <Select value={weekStart} onChange={(e) => setWeekStart(e.target.value)} className="max-w-48">
@@ -403,10 +410,12 @@ function RolesHelp() {
   const rows: [string, boolean[]][] = [
     ["See all projects and tasks", [true, true, true, true, true]],
     ["Comment on tasks", [true, true, true, true, false]],
-    ["Add and edit tasks in projects they're on", [true, true, true, true, false]],
-    ["Create projects", [true, true, true, false, false]],
+    ["Add tasks to any approved project, edit tasks in projects they're on", [true, true, true, true, false]],
+    ["Log their own time", [true, true, true, true, false]],
+    ["Add projects (a Member's project waits for approval)", [true, true, true, true, false]],
+    ["Approve projects, delete tasks", [true, true, true, false, false]],
     ["Edit details and people of projects they lead", [true, true, true, false, false]],
-    ["Edit and delete any project", [true, true, false, false, false]],
+    ["Edit and delete any project, fix anyone's time", [true, true, false, false, false]],
     ["Manage categories", [true, true, false, false, false]],
     ["Add people, reset passwords, change settings", [true, false, false, false, false]],
   ];

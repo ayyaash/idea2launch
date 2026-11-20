@@ -38,7 +38,7 @@ export default function TimePage() {
 
   return (
     <div className="mx-auto max-w-[1400px]">
-      <PageHeader title="Time" subtitle="Estimated and logged hours across projects"
+      <PageHeader title="Time" subtitle="Estimated and logged working days across projects"
         actions={<Button icon={<Download className="size-4" />}
           onClick={() => exportTimeToExcel(`Idea2Launch-time${range ? `-${range[0]}-to-${range[1]}` : ""}.xlsx`, projects, tasks, entries, store)}>Excel</Button>} />
 

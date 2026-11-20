@@ -1,39 +1,50 @@
 import type { Task, TimeEntry } from "./types";
 
-/** 135 -> "2h 15m", 60 -> "1h", 20 -> "20m", 0 -> "0h". */
-export function fmtMinutes(min: number | null | undefined, empty = "0h") {
+/** Length of a working day; set from the admin settings (default 8 hours). */
+let minutesPerDay = 8 * 60;
+export function setHoursPerDay(h: number) {
+  if (isFinite(h) && h > 0 && h <= 24) minutesPerDay = Math.round(h * 60);
+}
+export const hoursPerDay = () => minutesPerDay / 60;
+
+/** Minutes as working days: 480 -> "1d", 720 -> "1.5d", 30 -> "0.06d" (8-hour day). */
+export function fmtMinutes(min: number | null | undefined, empty = "0d") {
   if (min == null || !isFinite(min)) return empty;
-  const neg = min < 0;
-  const m = Math.round(Math.abs(min));
-  if (m === 0) return empty;
-  const h = Math.floor(m / 60);
-  const r = m % 60;
-  const s = h && r ? `${h}h ${r}m` : h ? `${h}h` : `${r}m`;
-  return neg ? `-${s}` : s;
+  const d = Math.round((min / minutesPerDay) * 100) / 100;
+  if (d === 0) return min > 0 ? "<0.01d" : empty;
+  return `${d}d`;
 }
 
-/** Hours with one decimal, for tables and Excel: 135 -> 2.3 */
-export const toHours = (min: number) => Math.round((min / 60) * 10) / 10;
+/** A running clock: 135 -> "2h 15m", 20 -> "20m". */
+export function fmtClock(min: number) {
+  const m = Math.max(0, Math.round(min));
+  const h = Math.floor(m / 60);
+  const r = m % 60;
+  return h ? `${h}h ${String(r).padStart(2, "0")}m` : `${r}m`;
+}
+
+/** Days with two decimals, for charts and Excel. */
+export const toDays = (min: number) => Math.round((min / minutesPerDay) * 100) / 100;
 
 /**
- * Reads what people type for a duration. Plain numbers are hours.
- * "2" "2.5" "2h" "2h 30m" "2h30" "90m" "1:30" "1d" (8h) all work. Returns minutes, or null if unreadable.
+ * Reads what people type for a duration. Plain numbers are working days.
+ * "2" "0.5" "2d" "4h" "2h 30m" "90m" "1:30" (h:mm) all work. Returns minutes, or null if unreadable.
  */
 export function parseDuration(raw: string): number | null {
   const s = raw.trim().toLowerCase().replace(",", ".");
   if (!s) return null;
   let m: RegExpMatchArray | null;
   if ((m = s.match(/^(\d+):(\d{1,2})$/))) return Number(m[1]) * 60 + Number(m[2]);
-  if ((m = s.match(/^\d+(\.\d+)?$/))) return Math.round(Number(s) * 60);
+  if ((m = s.match(/^\d+(\.\d+)?$/))) return Math.round(Number(s) * minutesPerDay);
   const re = /(\d+(?:\.\d+)?)\s*(days?|d|hours?|hrs?|h|minutes?|mins?|m)?/g;
   let total = 0;
   let matched = "";
   let lastUnit = "";
   for (const part of s.matchAll(re)) {
     const n = Number(part[1]);
-    const unit = part[2] ?? (lastUnit.startsWith("h") ? "m" : "h");
+    const unit = part[2] ?? (lastUnit.startsWith("h") ? "m" : lastUnit.startsWith("d") ? "h" : "d");
     lastUnit = unit;
-    total += unit.startsWith("d") ? n * 8 * 60 : unit.startsWith("h") ? n * 60 : n;
+    total += unit.startsWith("d") ? n * minutesPerDay : unit.startsWith("h") ? n * 60 : n;
     matched += part[0];
   }
   if (!matched || matched.replace(/\s/g, "") !== s.replace(/\s/g, "")) return null;

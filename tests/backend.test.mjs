@@ -334,9 +334,9 @@ test("time tracking: estimates, logs, timer and who can change them", async () =
   assert.equal(e1.project_id, proj.id);
   assert.equal(e1.user_id, ids.nia);
   ok(await people.nia.from("time_entries").insert({ task_id: sub.id, minutes: 30 }));
-  // limits: no zero, no more than 24h in one log
+  // limits: no zero, no more than 31 days in one log
   assert.ok((await people.nia.from("time_entries").insert({ task_id: t.id, minutes: 0 })).error);
-  assert.ok((await people.nia.from("time_entries").insert({ task_id: t.id, minutes: 1500 })).error);
+  assert.ok((await people.nia.from("time_entries").insert({ task_id: t.id, minutes: 45000 })).error);
   // nobody logs time for someone else, except admins/managers
   assert.ok((await people.nia.from("time_entries").insert({ task_id: t.id, minutes: 10, user_id: ids.max })).error);
   ok(await people.mia.from("time_entries").insert({ task_id: t.id, minutes: 15, user_id: ids.nia }));

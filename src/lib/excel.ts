@@ -1,3 +1,4 @@
+import { toDays } from "./time";
 import { PROJECT_STATUS_LABEL, PRIORITY_LABEL, TASK_STATUS_LABEL, toDate } from "./format";
 import type { Category, Profile, Project, Task, TimeEntry } from "./types";
 
@@ -26,10 +27,10 @@ export async function exportToExcel(fileName: string, projects: Project[], tasks
   const sectionName = new Map(lk.sections.map((s) => [s.id, s.name]));
   const loggedMin = new Map<string, number>();
   for (const e of lk.timeEntries ?? []) loggedMin.set(e.task_id, (loggedMin.get(e.task_id) ?? 0) + (e.minutes ?? 0));
-  const hrs = (m: number) => num(Math.round((m / 60) * 100) / 100);
+  const hrs = (m: number) => num(toDays(m));
 
   const projectRows: Cell[][] = [
-    head(["Code", "Project", "Category", "Status", "Lead", "Start", "End", "Tasks", "Done", "Progress %", "Estimate (h)", "Logged (h)", "Description"]),
+    head(["Code", "Project", "Category", "Status", "Lead", "Start", "End", "Tasks", "Done", "Progress %", "Estimate (days)", "Logged (days)", "Description"]),
     ...projects.map((p) => {
       const pt = tasks.filter((t) => t.project_id === p.id);
       const done = pt.filter((t) => t.status === "done").length;
@@ -43,7 +44,7 @@ export async function exportToExcel(fileName: string, projects: Project[], tasks
   ];
 
   const taskRows: Cell[][] = [
-    head(["Project code", "Project", "Phase", "Task", "Parent task", "Status", "Priority", "Owner", "Start", "Due", "Completed", "Estimate (h)", "Logged (h)", "Description"]),
+    head(["Project code", "Project", "Phase", "Task", "Parent task", "Status", "Priority", "Owner", "Start", "Due", "Completed", "Estimate (days)", "Logged (days)", "Description"]),
     ...[...tasks].sort((a, b) => (lk.projectById.get(a.project_id)?.code ?? "").localeCompare(lk.projectById.get(b.project_id)?.code ?? "") || a.sort_order - b.sort_order).map((t) => {
       const p = lk.projectById.get(t.project_id);
       return [
@@ -72,10 +73,10 @@ export async function exportTimeToExcel(
   const projectIds = new Set(projects.map((p) => p.id));
   const logged = new Map<string, number>();
   for (const e of entries) logged.set(e.task_id, (logged.get(e.task_id) ?? 0) + (e.minutes ?? 0));
-  const h = (m: number) => num(Math.round((m / 60) * 100) / 100);
+  const h = (m: number) => num(toDays(m));
 
   const summary: Cell[][] = [
-    head(["Project code", "Project", "Phase", "Task", "Parent task", "Owner", "Status", "Estimate (h)", "Logged (h)", "Remaining (h)", "Over (h)"]),
+    head(["Project code", "Project", "Phase", "Task", "Parent task", "Owner", "Status", "Estimate (days)", "Logged (days)", "Remaining (days)", "Over (days)"]),
   ];
   let te = 0, tl = 0;
   for (const t of [...tasks].filter((t) => projectIds.has(t.project_id))
@@ -92,7 +93,7 @@ export async function exportTimeToExcel(
   }
   summary.push([{ value: "Total", fontWeight: "bold" }, null, null, null, null, null, null, h(te), h(tl), h(Math.max(0, te - tl)), h(Math.max(0, tl - te))]);
 
-  const log: Cell[][] = [head(["Date", "Person", "Project code", "Project", "Phase", "Task", "Hours", "Minutes", "Note"])];
+  const log: Cell[][] = [head(["Date", "Person", "Project code", "Project", "Phase", "Task", "Days", "Minutes", "Note"])];
   for (const e of [...entries].filter((e) => e.minutes != null).sort((a, b) => a.entry_date.localeCompare(b.entry_date))) {
     const t = taskById.get(e.task_id);
     const p = lk.projectById.get(e.project_id);
@@ -102,7 +103,7 @@ export async function exportTimeToExcel(
 
   const per = new Map<string, number>();
   for (const e of entries) per.set(e.user_id, (per.get(e.user_id) ?? 0) + (e.minutes ?? 0));
-  const people: Cell[][] = [head(["Person", "Hours"]),
+  const people: Cell[][] = [head(["Person", "Days"]),
     ...[...per.entries()].sort((a, b) => b[1] - a[1]).map(([u, m]) => [text(name(u)), h(m)])];
 
   await writeExcelFile([

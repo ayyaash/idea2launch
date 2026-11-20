@@ -6,7 +6,7 @@ import { useAuth } from "../lib/auth";
 import { supabase } from "../lib/supabase";
 import { fmtDate } from "../lib/format";
 import { isManager } from "../lib/perms";
-import { entryMinutes, fmtMinutes, loggedByTask, parseDuration, taskTotals } from "../lib/time";
+import { entryMinutes, fmtClock, fmtMinutes, hoursPerDay, loggedByTask, parseDuration, taskTotals } from "../lib/time";
 import type { Task } from "../lib/types";
 import { Avatar, Button, Input, cx } from "./ui";
 import { useToast } from "./Toast";
@@ -65,15 +65,15 @@ export function TaskTime({ task, canEdit }: { task: Task; canEdit: boolean }) {
 
   async function saveEstimate() {
     const v = est.trim() ? parseDuration(est) : null;
-    if (est.trim() && v == null) { toast.error("Type the estimate like 4h, 2h 30m, 90m or 1.5"); return; }
+    if (est.trim() && v == null) { toast.error("Type the estimate in days, like 2 or 0.5 (or 4h)"); return; }
     if (v === (task.estimate_minutes ?? null)) return;
     await store.patchTask(task.id, { estimate_minutes: v });
   }
 
   async function logTime() {
     const m = parseDuration(dur);
-    if (!m || m <= 0) { toast.error("Type the time like 2h, 1h 30m, 45m or 1.5"); return; }
-    if (m > 1440) { toast.error("One log can be at most 24 hours. Add one per day."); return; }
+    if (!m || m <= 0) { toast.error("Type the time in days, like 1 or 0.5 (or 3h, 45m)"); return; }
+    if (m > 31 * 24 * 60) { toast.error("One log can be at most 31 days."); return; }
     const r = await store.mutate(() => supabase.from("time_entries").insert({ task_id: task.id, minutes: m, entry_date: day, note: note.trim() }),
       { success: `${fmtMinutes(m)} logged` });
     if (r) { setDur(""); setNote(""); }
@@ -91,15 +91,15 @@ export function TaskTime({ task, canEdit }: { task: Task; canEdit: boolean }) {
 
       <div className="flex flex-wrap items-center gap-2">
         <label className="flex items-center gap-2 text-sm text-slate-600">
-          My estimate for this task
-          <Input aria-label="Estimate" value={est} disabled={!canEdit} placeholder="e.g. 4h" className="h-8 w-28 py-1"
+          Estimate for this task (days)
+          <Input aria-label="Estimate" value={est} disabled={!canEdit} placeholder="Days, e.g. 2" className="h-8 w-28 py-1"
             onChange={(e) => setEst(e.target.value)} onBlur={saveEstimate}
             onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }} />
         </label>
         {canEdit && (runningHere ? (
           <Button size="sm" variant="danger" icon={<Square className="size-3.5" />}
             onClick={() => store.mutate(() => supabase.rpc("stop_timer", {}), { success: "Timer stopped and time logged" })}>
-            Stop · {fmtMinutes(entryMinutes(myTimer!, now), "0m")}
+            Stop · {fmtClock(entryMinutes(myTimer!, now))}
           </Button>
         ) : (
           <Button size="sm" icon={<Play className="size-3.5" />}
@@ -111,7 +111,7 @@ export function TaskTime({ task, canEdit }: { task: Task; canEdit: boolean }) {
 
       {canEdit && (
         <div className="grid gap-2 rounded-lg bg-slate-50 p-2.5 ring-1 ring-slate-200 sm:grid-cols-[120px_140px_1fr_auto]">
-          <Input aria-label="Time spent" value={dur} onChange={(e) => setDur(e.target.value)} placeholder="e.g. 1h 30m"
+          <Input aria-label="Time spent" value={dur} onChange={(e) => setDur(e.target.value)} placeholder="Days, e.g. 0.5"
             onKeyDown={(e) => { if (e.key === "Enter") logTime(); }} />
           <Input type="date" aria-label="Date" value={day} max={format(new Date(), "yyyy-MM-dd")} onChange={(e) => setDay(e.target.value)} />
           <Input aria-label="Note" value={note} onChange={(e) => setNote(e.target.value)} placeholder="Note (optional)"
@@ -130,7 +130,7 @@ export function TaskTime({ task, canEdit }: { task: Task; canEdit: boolean }) {
                 <Avatar person={who} size={22} />
                 <span className="w-24 shrink-0 text-xs text-slate-500">{fmtDate(e.entry_date, "d MMM")}</span>
                 <span className={cx("w-16 shrink-0 font-medium tabular-nums", running && "text-brand-600")}>
-                  {running && <Timer className="mr-0.5 inline size-3.5 animate-pulse" />}{fmtMinutes(entryMinutes(e, now), "0m")}
+                  {running ? <><Timer className="mr-0.5 inline size-3.5 animate-pulse" />{fmtClock(entryMinutes(e, now))}</> : fmtMinutes(e.minutes)}
                 </span>
                 <span className="min-w-0 flex-1 truncate text-slate-600" title={e.note}>{running ? "Timer running…" : e.note || <span className="text-slate-400">{who?.full_name}</span>}</span>
                 {!running && (e.user_id === me?.id || isManager(me)) && (
@@ -144,7 +144,7 @@ export function TaskTime({ task, canEdit }: { task: Task; canEdit: boolean }) {
           })}
         </ul>
       )}
-      {subs.length > 0 && <p className="text-xs text-slate-500">Totals include the time on this task's {subs.length} subtask(s).</p>}
+      <p className="text-xs text-slate-500">{subs.length > 0 ? `Totals include the time on this task's ${subs.length} subtask(s). ` : ""}1 day = {hoursPerDay()} working hours. You can also type hours, like 3h or 45m.</p>
     </div>
   );
 }
@@ -170,7 +170,7 @@ export function RunningTimer() {
     <div className="flex items-center gap-1 rounded-full bg-brand-50 py-1 pr-1 pl-3 text-sm text-brand-800 ring-1 ring-brand-200">
       <button className="flex max-w-56 items-center gap-1.5 truncate" onClick={() => openTask(timer.task_id)} title={task?.title}>
         <Timer className="size-4 shrink-0 animate-pulse" />
-        <span className="font-semibold tabular-nums">{fmtMinutes(entryMinutes(timer, now), "0m")}</span>
+        <span className="font-semibold tabular-nums">{fmtClock(entryMinutes(timer, now))}</span>
         <span className="hidden truncate sm:inline">{task?.title}</span>
       </button>
       <button aria-label="Stop timer" className="rounded-full bg-brand-500 p-1 text-white hover:bg-brand-600"

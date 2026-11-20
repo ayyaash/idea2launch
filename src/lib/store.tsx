@@ -2,11 +2,12 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { supabase, fetchAll, errorText } from "./supabase";
 import { useAuth } from "./auth";
 import { useToast } from "../components/Toast";
+import { setHoursPerDay } from "./time";
 import type {
   Category, Collaborator, Dependency, Notification, Profile, Project, ProjectMember, Section, Settings, Task, TimeEntry,
 } from "./types";
 
-const DEFAULT_SETTINGS: Settings = { overload_threshold: 25, max_upload_mb: 10, company_name: "Idea2Launch", week_starts_on: 1, default_phases: [] };
+const DEFAULT_SETTINGS: Settings = { overload_threshold: 25, max_upload_mb: 10, company_name: "Idea2Launch", week_starts_on: 1, default_phases: [], hours_per_day: 8 };
 
 interface Data {
   ready: boolean;
@@ -78,6 +79,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         .catch(() => [] as TimeEntry[]);
       const settings = { ...DEFAULT_SETTINGS } as Record<string, unknown>;
       for (const r of settingsRows) settings[r.key] = r.value;
+      setHoursPerDay(Number(settings.hours_per_day) || 8);
       setData((d) => ({
         ...d, ready: true, profiles, categories, projects, members, sections, tasks, collaborators, dependencies, timeEntries,
         settings: settings as unknown as Settings,
