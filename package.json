@@ -3,9 +3,11 @@
   "version": "1.0.0",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "tsc --noEmit -p . && vite build",
     "preview": "vite preview",
-    "test:backend": "node --test tests/"
+    "test:backend": "node --test tests/backend.test.mjs",
+    "seed:demo": "node tests/seed-demo.mjs",
+    "build:sql": "node scripts/build-setup-sql.mjs"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.5",

@@ -219,3 +219,22 @@ test("reset password, deactivate, delete", async () => {
   const del = await fn(people.admin, { action: "delete", user_id: vicId });
   assert.equal(del.ok, true);
 });
+
+test("project phases", async () => {
+  const phases = ok(await people.mia.from("project_sections").select("*").eq("project_id", ids.p1).order("sort_order"));
+  assert.deepEqual(phases.map((p) => p.name), ["Planning", "Research", "Development", "Testing", "Launch"]);
+  const otherPhase = ok(await people.mia.from("project_sections").select("id").eq("project_id", ids.p2).limit(1).single());
+  const t = ok(await people.cora.from("tasks").insert({ project_id: ids.p1, title: "Phase test", section_id: phases[1].id }).select().single());
+  assert.equal(t.section_id, phases[1].id);
+  const sub = ok(await people.cora.from("tasks").insert({ project_id: ids.p1, parent_id: t.id, title: "child" }).select().single());
+  assert.equal(sub.section_id, phases[1].id, "subtask follows parent's phase");
+  const moved = ok(await people.cora.from("tasks").update({ section_id: phases[3].id }).eq("id", t.id).select().single());
+  assert.equal(moved.section_id, phases[3].id);
+  const child = ok(await people.mia.from("tasks").select("section_id").eq("id", sub.id).single());
+  assert.equal(child.section_id, phases[3].id);
+  const wrong = ok(await people.cora.from("tasks").update({ section_id: otherPhase.id }).eq("id", t.id).select().single());
+  assert.equal(wrong.section_id, null, "phase from another project is rejected");
+  const { error } = await people.mo.from("project_sections").insert({ project_id: ids.p2, name: "x" });
+  assert.ok(error, "people not on a project cannot add phases");
+  ok(await people.cora.from("project_sections").insert({ project_id: ids.p1, name: "Extra", sort_order: 9 }));
+});
