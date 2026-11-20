@@ -7,6 +7,7 @@ import { useAuth } from "../lib/auth";
 import { PROJECT_STATUSES, PROJECT_STATUS_BAR, PROJECT_STATUS_LABEL, PROJECT_STATUS_STYLE, fmtShort, isoDay } from "../lib/format";
 import { inYear, isOverdue, isoToday, monthRange, progressOf, today, weekRange, yearBar } from "../lib/metrics";
 import { canCreateProject } from "../lib/perms";
+import { PendingApprovals } from "../components/Approval";
 import { exportToExcel } from "../lib/excel";
 import type { Project, ProjectStatus, Task } from "../lib/types";
 import { Avatar, Button, Card, EmptyState, PageHeader, Pill, Select, Spinner, cx } from "../components/ui";
@@ -27,6 +28,7 @@ export default function Dashboard() {
   const [showFilters, setShowFilters] = useState(false);
 
   const yearProjects = useMemo(() => store.projects
+    .filter((p) => p.approval !== "pending" && p.approval !== "rejected")
     .filter((p) => inYear(p, year))
     .filter((p) => !category || (category === "none" ? !p.category_id : p.category_id === category))
     .filter((p) => !status || p.status === status)
@@ -95,6 +97,8 @@ export default function Dashboard() {
           {canCreateProject(me) && <Button variant="primary" icon={<Plus className="size-4" />} onClick={() => setNewOpen(true)}>New project</Button>}
         </>}
       />
+
+      <PendingApprovals />
 
       {showFilters && (
         <Card className="mb-4 grid gap-3 p-3 sm:grid-cols-4">

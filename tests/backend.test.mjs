@@ -78,8 +78,6 @@ test("project permissions", async () => {
   assert.ok(catErr, "members cannot add categories");
   ids.cat = cat.id;
 
-  const { error: memberCreate } = await people.mo.from("projects").insert({ code: "M" + run, name: "nope" });
-  assert.ok(memberCreate, "members cannot create projects");
 
   const coraId = (await people.cora.auth.getUser()).data.user.id;
   ids.cora = coraId;
@@ -94,9 +92,6 @@ test("project permissions", async () => {
   const p2 = ok(await people.admin.from("projects").insert({ code: "P2-" + run, name: "Battery pack" }).select().single());
   ids.p2 = p2.id;
 
-  // mo is not on P1 yet -> cannot add a task
-  const { error: moTask } = await people.mo.from("tasks").insert({ project_id: p.id, title: "x" });
-  assert.ok(moTask, "non-member cannot add tasks");
   // viewer can read but not write
   assert.equal(ok(await people.vic.from("projects").select("id")).length >= 2, true);
   const { error: vicTask } = await people.vic.from("tasks").insert({ project_id: p.id, title: "x" });
@@ -104,7 +99,7 @@ test("project permissions", async () => {
   // members cannot edit project details even if assigned
   const moId = (await people.mo.auth.getUser()).data.user.id;
   ids.mo = moId;
-  ok(await people.cora.from("project_members").insert({ project_id: p.id, user_id: moId }));
+  ok(await people.cora.from("project_members").upsert({ project_id: p.id, user_id: moId }));
   const upd = await people.mo.from("projects").update({ name: "hijack" }).eq("id", p.id).select();
   assert.equal(upd.data?.length ?? 0, 0, "members cannot rename a project");
   // manager can edit any project
@@ -266,4 +261,64 @@ test("new people and admin resets must choose their own password", async () => {
   const { data: { user: adminUser } } = await people.admin.auth.getUser();
   const adm = ok(await service.from("profiles").select("must_change_password").eq("id", adminUser.id).single());
   assert.equal(adm.must_change_password, false);
+});
+
+test("members add projects that wait for approval; delete rights", async () => {
+  // max and nia are plain members (mo was promoted earlier)
+  const made = await fn(people.admin, { action: "create", username: u("nia"), password: PW, role: "member" });
+  assert.ok(made.ok, JSON.stringify(made));
+  ids.nia = made.id;
+  people.nia = await signIn(u("nia"));
+  assert.ok((await fn(people.admin, { action: "create", username: u("val"), password: PW, role: "viewer" })).ok);
+  people.val = await signIn(u("val"));
+  // a member adds a project: it waits for approval and they lead it
+  const mp = ok(await people.max.from("projects").insert({ code: "M-" + run, name: "Member idea" }).select().single());
+  assert.equal(mp.approval, "pending");
+  assert.equal(mp.lead_id, ids.max);
+  // they can't approve it themselves
+  const { error: selfApprove } = await people.max.rpc("review_project", { p_project: mp.id, p_approve: true });
+  assert.ok(selfApprove);
+  const sneaky = await people.max.from("projects").update({ approval: "approved" }).eq("id", mp.id).select();
+  assert.ok(sneaky.error, "approval can't be set directly");
+  // other members and viewers don't see it yet; approvers do and were notified
+  assert.equal(ok(await people.nia.from("projects").select("id").eq("id", mp.id)).length, 0);
+  assert.equal(ok(await people.val.from("projects").select("id").eq("id", mp.id)).length, 0);
+  assert.equal(ok(await people.cora.from("projects").select("id").eq("id", mp.id)).length, 1);
+  const coraNotes = ok(await people.cora.from("notifications").select("kind, project_id"));
+  assert.ok(coraNotes.some((n) => n.kind === "approval" && n.project_id === mp.id));
+  // nia can't add tasks to a project she can't see yet
+  const { error: niaEarly } = await people.nia.from("tasks").insert({ project_id: mp.id, title: "early" });
+  assert.ok(niaEarly);
+  // a project coordinator approves it
+  ok(await people.cora.rpc("review_project", { p_project: mp.id, p_approve: true, p_note: "" }));
+  const after = ok(await people.nia.from("projects").select("approval").eq("id", mp.id).single());
+  assert.equal(after.approval, "approved");
+  const maxNotes = ok(await people.max.from("notifications").select("kind, project_id"));
+  assert.ok(maxNotes.some((n) => n.kind === "approval" && n.project_id === mp.id));
+
+  // anyone (not viewers) can add a task to an approved project, and joins it
+  const mt = ok(await people.nia.from("tasks").insert({ project_id: mp.id, title: "Nia's task" }).select().single());
+  const mem = ok(await people.val.from("project_members").select("user_id").eq("project_id", mp.id));
+  assert.ok(mem.some((m) => m.user_id === ids.nia));
+  const { error: vicTask } = await people.val.from("tasks").insert({ project_id: mp.id, title: "x" });
+  assert.ok(vicTask, "viewers still can't add tasks");
+
+  // only admin / manager / coordinator delete tasks
+  const d1 = await people.nia.from("tasks").delete().eq("id", mt.id).select();
+  assert.equal(d1.data?.length ?? 0, 0, "members can't delete tasks, even their own");
+  const d2 = ok(await people.cora.from("tasks").delete().eq("id", mt.id).select());
+  assert.equal(d2.length, 1, "coordinators can delete tasks");
+
+  // only admin / manager delete projects
+  const d3 = await people.cora.from("projects").delete().eq("id", mp.id).select();
+  assert.equal(d3.data?.length ?? 0, 0, "coordinators can't delete projects");
+  const d4 = ok(await people.mia.from("projects").delete().eq("id", mp.id).select());
+  assert.equal(d4.length, 1, "managers can delete projects");
+
+  // a rejected project stays hidden from others
+  const rp = ok(await people.max.from("projects").insert({ code: "R-" + run, name: "Another idea" }).select().single());
+  ok(await people.mia.rpc("review_project", { p_project: rp.id, p_approve: false, p_note: "Merge with P1" }));
+  const r = ok(await people.max.from("projects").select("approval, review_note").eq("id", rp.id).single());
+  assert.deepEqual(r, { approval: "rejected", review_note: "Merge with P1" });
+  assert.equal(ok(await people.nia.from("projects").select("id").eq("id", rp.id)).length, 0);
 });

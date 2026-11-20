@@ -141,7 +141,7 @@ function TaskPanel({ taskId, onClose }: { taskId: string; onClose: () => void })
         {canContribute(me) && (
           <IconButton label="Copy task" onClick={() => setCopyOpen(true)}><Copy className="size-4" /></IconButton>
         )}
-        {canDeleteTask(me, project, task, members) && (
+        {canDeleteTask(me) && (
           <div className="relative">
             <IconButton label="More actions" onClick={() => setMoreOpen((o) => !o)}><MoreHorizontal className="size-4" /></IconButton>
             {moreOpen && (

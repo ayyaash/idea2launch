@@ -10,7 +10,8 @@ import {
   TASK_STATUS_LABEL, fmtDate, toDate,
 } from "../lib/format";
 import { progressOf, today } from "../lib/metrics";
-import { canEditProject, canManageProject, isManager } from "../lib/perms";
+import { canAddTask, canEditProject, canManageProject, isManager } from "../lib/perms";
+import { ApprovalBanner, ApprovalPill } from "../components/Approval";
 import { exportToExcel } from "../lib/excel";
 import type { Priority, ProjectStatus, Section, Task, TaskStatus } from "../lib/types";
 import { Avatar, Button, Card, EmptyState, IconButton, Pill, Select, Spinner, Tabs, cx, useConfirm } from "../components/ui";
@@ -49,6 +50,7 @@ export default function ProjectPage() {
   }
 
   const canEdit = canEditProject(me, project, members);
+  const canAdd = canAddTask(me, project, members);
   const canManage = canManageProject(me, project);
   const cat = project.category_id ? store.categoryById.get(project.category_id) : undefined;
   const lead = project.lead_id ? store.profileById.get(project.lead_id) : undefined;
@@ -75,6 +77,7 @@ export default function ProjectPage() {
           <div className="flex flex-wrap items-center gap-2 text-sm text-slate-500">
             <span className="font-mono">{project.code}</span>
             {cat && <span className="flex items-center gap-1"><span className="size-2.5 rounded-full" style={{ background: cat.color }} />{cat.name}</span>}
+            <ApprovalPill project={project} />
           </div>
           <h1 className="mt-0.5 text-xl font-semibold text-slate-900 sm:text-2xl">{project.name}</h1>
           <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-slate-600">
@@ -100,6 +103,8 @@ export default function ProjectPage() {
         </div>
       </div>
 
+      <ApprovalBanner project={project} />
+
       <Tabs value={view} onChange={setView} tabs={[
         { id: "list", label: "List", icon: <List className="size-4" /> },
         { id: "board", label: "Board", icon: <KanbanSquare className="size-4" /> },
@@ -121,12 +126,12 @@ export default function ProjectPage() {
           <label className="flex items-center gap-2 text-sm text-slate-700">
             <input type="checkbox" checked={hideDone} onChange={(e) => setHideDone(e.target.checked)} className="size-4 accent-brand-500" /> Hide done
           </label>
-          {!canEdit && <span className="ml-auto text-xs text-slate-500">View only. Ask the project lead to add you to edit.</span>}
+          {!canEdit && <span className="ml-auto text-xs text-slate-500">{canAdd ? "You can add tasks here. Adding one makes you part of this project." : "View only."}</span>}
         </div>
       )}
 
-      {view === "list" && <ListView projectId={project.id} tasks={filtered} canEdit={canEdit} />}
-      {view === "board" && <BoardView projectId={project.id} tasks={filtered} canEdit={canEdit} />}
+      {view === "list" && <ListView projectId={project.id} tasks={filtered} canEdit={canEdit} canAdd={canAdd} />}
+      {view === "board" && <BoardView projectId={project.id} tasks={filtered} canEdit={canEdit} canAdd={canAdd} />}
       {view === "timeline" && <TimelineView tasks={filtered} />}
       {view === "people" && <PeopleView projectId={project.id} canManage={canManage} />}
 
@@ -142,7 +147,7 @@ function StatusText({ s }: { s: ProjectStatus }) {
 /* ------------------------------ List ------------------------------ */
 type Group = { key: string; title: string; dot?: string; sectionId?: string | null; status?: TaskStatus; tasks: Task[]; section?: Section };
 
-function ListView({ projectId, tasks, canEdit }: { projectId: string; tasks: Task[]; canEdit: boolean }) {
+function ListView({ projectId, tasks, canEdit, canAdd }: { projectId: string; tasks: Task[]; canEdit: boolean; canAdd: boolean }) {
   const store = useStore();
   const confirm = useConfirm();
   const [groupBy, setGroupBy] = useState<"phase" | "status">(() => (localStorage.getItem("i2l-group") as "phase" | "status") || "phase");
@@ -232,7 +237,7 @@ function ListView({ projectId, tasks, canEdit }: { projectId: string; tasks: Tas
                       </div>
                     );
                   })}
-                  {canEdit && (
+                  {canAdd && (
                     <div className="border-b border-slate-100 py-1.5 pr-3 pl-9">
                       <QuickAdd placeholder={`Add a task to ${g.title}`}
                         onAdd={(title) => store.mutate(() => supabase.from("tasks").insert({
@@ -263,7 +268,7 @@ function ListView({ projectId, tasks, canEdit }: { projectId: string; tasks: Tas
 }
 
 /* ------------------------------ Board ------------------------------ */
-function BoardView({ projectId, tasks, canEdit }: { projectId: string; tasks: Task[]; canEdit: boolean }) {
+function BoardView({ projectId, tasks, canEdit, canAdd }: { projectId: string; tasks: Task[]; canEdit: boolean; canAdd: boolean }) {
   const store = useStore();
   const openTask = useOpenTask();
   const changeStatus = useStatusChange();
@@ -313,7 +318,7 @@ function BoardView({ projectId, tasks, canEdit }: { projectId: string; tasks: Ta
                     </article>
                   );
                 })}
-                {canEdit && (
+                {canAdd && (
                   <div className="rounded-lg px-2 py-1 hover:bg-white/60">
                     <QuickAdd placeholder="Add task" onAdd={(title) => store.mutate(() => supabase.from("tasks").insert({ project_id: projectId, title, status }))} />
                   </div>

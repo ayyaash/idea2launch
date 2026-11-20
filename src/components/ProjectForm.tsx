@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useStore } from "../lib/store";
 import { useAuth } from "../lib/auth";
 import { supabase } from "../lib/supabase";
+import { canApprove } from "../lib/perms";
 import { PROJECT_STATUSES, PROJECT_STATUS_LABEL } from "../lib/format";
 import type { Project, ProjectStatus } from "../lib/types";
 import { Button, Field, Input, Modal, Select, Textarea } from "./ui";
@@ -30,7 +31,7 @@ export function ProjectForm({ open, onClose, project }: { open: boolean; onClose
     setErr("");
     setD(project ? { ...project } : {
       code: suggestCode(store.projects), name: "", description: "", category_id: store.categories[0]?.id ?? null,
-      status: "planning", lead_id: me?.role === "coordinator" ? me.id : null,
+      status: "planning", lead_id: me && me.role !== "admin" && me.role !== "manager" ? me.id : null,
       start_date: new Date().toISOString().slice(0, 10), end_date: null,
     });
   }, [open, project, store.projects, store.categories, me]);
@@ -43,13 +44,15 @@ export function ProjectForm({ open, onClose, project }: { open: boolean; onClose
     if (!d.code.trim() || !d.name.trim()) { setErr("Project code and name are required."); return; }
     if (d.start_date && d.end_date && d.end_date < d.start_date) { setErr("The end date must be on or after the start date."); return; }
     setBusy(true);
-    const payload = { ...d, code: d.code.trim(), name: d.name.trim() };
+    const { approval: _a, reviewed_by: _b, reviewed_at: _c, review_note: _n, ...rest } = d as Partial<Project>;
+    void _a; void _b; void _c; void _n;
+    const payload = { ...rest, code: d.code.trim(), name: d.name.trim() };
     if (project) {
       const ok = await store.patchProject(project.id, payload);
       setBusy(false);
       if (ok) onClose();
     } else {
-      const created = await store.mutate(() => supabase.from("projects").insert(payload).select("id").single(), { success: "Project created" });
+      const created = await store.mutate(() => supabase.from("projects").insert(payload).select("id").single(), { success: canApprove(me) ? "Project created" : "Project sent for approval" });
       setBusy(false);
       if (created) { onClose(); nav(`/projects/${(created as { id: string }).id}`); }
     }
@@ -57,7 +60,7 @@ export function ProjectForm({ open, onClose, project }: { open: boolean; onClose
 
   return (
     <Modal open={open} onClose={onClose} title={project ? "Edit project" : "New project"} wide
-      footer={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" loading={busy} onClick={save}>{project ? "Save changes" : "Create project"}</Button></>}>
+      footer={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" loading={busy} onClick={save}>{project ? "Save changes" : canApprove(me) ? "Create project" : "Send for approval"}</Button></>}>
       <div className="grid gap-4 sm:grid-cols-[160px_1fr]">
         <Field label="Project code"><Input value={d.code} onChange={(e) => set("code", e.target.value.toUpperCase())} /></Field>
         <Field label="Project name"><Input autoFocus value={d.name} onChange={(e) => set("name", e.target.value)} placeholder="e.g. Smart irrigation sensor" /></Field>

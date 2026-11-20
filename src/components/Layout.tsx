@@ -8,6 +8,7 @@ import { NotificationsBell } from "./Notifications";
 import { Avatar, cx } from "./ui";
 import { TaskPanelHost } from "./TaskPanel";
 import { SearchBox } from "./SearchBox";
+import { InstallApp } from "./InstallApp";
 
 export function Layout() {
   const { me, signOut } = useAuth();
@@ -57,6 +58,7 @@ export function Layout() {
             </NavLink>
           ))}
         </nav>
+        <div className="px-3 pb-1"><InstallApp dark /></div>
         <div className="px-5 pb-4 text-[11px] tracking-wide text-navy-300">Innovate · Develop · Launch</div>
       </aside>
       {navOpen && <div className="fixed inset-0 z-30 bg-slate-900/40 lg:hidden" onClick={() => setNavOpen(false)} />}

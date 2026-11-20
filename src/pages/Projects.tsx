@@ -6,6 +6,7 @@ import { useAuth } from "../lib/auth";
 import { PROJECT_STATUSES, PROJECT_STATUS_LABEL, fmtShort } from "../lib/format";
 import { inYear, progressOf } from "../lib/metrics";
 import { canCreateProject } from "../lib/perms";
+import { ApprovalPill } from "../components/Approval";
 import { exportToExcel } from "../lib/excel";
 import type { ProjectStatus } from "../lib/types";
 import { Avatar, AvatarStack, Button, Card, EmptyState, Input, PageHeader, Select, Spinner } from "../components/ui";
@@ -98,7 +99,7 @@ export default function Projects() {
                   <Link to={`/projects/${p.id}`} className="grid gap-x-3 gap-y-1 px-4 py-3 hover:bg-slate-50 lg:grid-cols-[110px_minmax(0,1fr)_150px_170px_110px_150px_110px] lg:items-center">
                     <span className="font-mono text-xs text-slate-500">{p.code}</span>
                     <span className="min-w-0">
-                      <span className="block truncate font-medium text-slate-900">{p.name}</span>
+                      <span className="flex min-w-0 items-center gap-2"><span className="truncate font-medium text-slate-900">{p.name}</span><ApprovalPill project={p} /></span>
                       <span className="mt-0.5 flex items-center gap-2"><AvatarStack people={team} size={20} max={5} /></span>
                     </span>
                     <span className="flex items-center gap-1.5 text-sm text-slate-600">

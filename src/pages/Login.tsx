@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Loader2 } from "lucide-react";
 import { useAuth } from "../lib/auth";
 import { isConfigured } from "../lib/supabase";
+import { InstallApp } from "../components/InstallApp";
 
 export default function Login() {
   const { signIn } = useAuth();
@@ -47,6 +48,7 @@ export default function Login() {
           </button>
         </form>
         <p className="mt-5 text-center text-xs text-slate-500">Forgot your password? Ask your admin to reset it.</p>
+        <InstallApp className="mt-3 justify-center" />
       </div>
     </div>
   );

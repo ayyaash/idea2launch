@@ -35,6 +35,10 @@ export interface Project {
   created_by: string | null;
   created_at: string;
   updated_at: string;
+  approval: "pending" | "approved" | "rejected";
+  reviewed_by: string | null;
+  reviewed_at: string | null;
+  review_note: string;
 }
 
 export interface Section {
