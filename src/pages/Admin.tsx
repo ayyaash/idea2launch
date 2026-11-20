@@ -100,13 +100,13 @@ function PeopleAdmin() {
         <Button variant="primary" icon={<UserPlus className="size-4" />} onClick={() => setAddOpen(true)}>Add person</Button>
       </div>
       <Card className="overflow-hidden">
-        <div className="hidden grid-cols-[minmax(0,1fr)_150px_190px_110px_110px] gap-3 border-b border-slate-200 bg-slate-50 px-4 py-2 text-xs font-medium tracking-wide text-slate-500 uppercase md:grid">
+        <div className="hidden grid-cols-[minmax(0,1fr)_140px_210px_110px_110px] gap-3 border-b border-slate-200 bg-slate-50 px-4 py-2 text-xs font-medium tracking-wide text-slate-500 uppercase md:grid">
           <span>Person</span><span>Username</span><span>Role</span><span>Status</span><span className="text-right">Actions</span>
         </div>
         {list.map((p) => {
           const self = p.id === me?.id;
           return (
-            <div key={p.id} className={cx("grid items-center gap-x-3 gap-y-2 border-b border-slate-100 px-4 py-3 md:grid-cols-[minmax(0,1fr)_150px_190px_110px_110px]", !p.is_active && "bg-slate-50 opacity-70")}>
+            <div key={p.id} className={cx("grid items-center gap-x-3 gap-y-2 border-b border-slate-100 px-4 py-3 md:grid-cols-[minmax(0,1fr)_140px_210px_110px_110px]", !p.is_active && "bg-slate-50 opacity-70")}>
               <div className="flex min-w-0 items-center gap-3">
                 <Avatar person={p} size={34} />
                 <div className="min-w-0">
