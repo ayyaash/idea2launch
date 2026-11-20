@@ -17,7 +17,7 @@ export default function Account() {
   const [pw2, setPw2] = useState("");
   const [busy, setBusy] = useState<"" | "profile" | "pw">("");
 
-  useEffect(() => { if (me) { setName(me.full_name); setTitle(me.job_title); setColor(me.color); } }, [me]);
+  useEffect(() => { if (me) { setName(me.full_name); setTitle(me.job_title); setColor(me.color); } }, [me?.id, me?.full_name, me?.job_title, me?.color]); // eslint-disable-line react-hooks/exhaustive-deps
   if (!me) return null;
 
   async function saveProfile() {

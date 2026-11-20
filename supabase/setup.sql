@@ -1145,3 +1145,11 @@ grant all on public.time_entries to service_role;
 alter table public.time_entries drop constraint if exists time_entries_minutes_check;
 alter table public.time_entries add constraint time_entries_minutes_check
   check (minutes is null or (minutes > 0 and minutes <= 44640));
+
+-- ===== 20261120000007_no_phases.sql =====
+-- Projects are just tasks and subtasks: no phases.
+-- New projects no longer get default phases, and existing phases are removed
+-- (their tasks stay in the project; only the phase grouping goes).
+drop trigger if exists projects_default_phases on public.projects;
+update public.app_settings set value = '[]'::jsonb where key = 'default_phases';
+delete from public.project_sections;

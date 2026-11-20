@@ -6,7 +6,7 @@ import { useAuth } from "../lib/auth";
 import { supabase, errorText } from "../lib/supabase";
 import { ROLES, ROLE_HELP, ROLE_LABEL, SWATCHES, fmtDate } from "../lib/format";
 import type { Category, Profile, Role } from "../lib/types";
-import { Avatar, Button, Card, ColorPicker, Field, IconButton, Input, Modal, PageHeader, Pill, Select, Spinner, Tabs, Textarea, cx, useConfirm } from "../components/ui";
+import { Avatar, Button, Card, ColorPicker, Field, IconButton, Input, Modal, PageHeader, Pill, Select, Spinner, Tabs, cx, useConfirm } from "../components/ui";
 import { useToast } from "../components/Toast";
 
 type Tab = "people" | "categories" | "settings" | "roles";
@@ -192,7 +192,7 @@ function ResetPasswordModal({ person, onClose, onDone }: { person: Profile | nul
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
-  useEffect(() => { if (person) { setPassword(makePassword()); setErr(""); } }, [person]);
+  useEffect(() => { if (person) { setPassword(makePassword()); setErr(""); } }, [person?.id]); // eslint-disable-line react-hooks/exhaustive-deps
   if (!person) return null;
   async function save() {
     if (password.length < 8) return setErr("Password must be at least 8 characters.");
@@ -223,7 +223,7 @@ function EditPersonModal({ person, onClose }: { person: Profile | null; onClose:
   const [title, setTitle] = useState("");
   const [color, setColor] = useState(SWATCHES[0]);
   const [busy, setBusy] = useState(false);
-  useEffect(() => { if (person) { setName(person.full_name); setTitle(person.job_title); setColor(person.color); } }, [person]);
+  useEffect(() => { if (person) { setName(person.full_name); setTitle(person.job_title); setColor(person.color); } }, [person?.id]); // eslint-disable-line react-hooks/exhaustive-deps
   if (!person) return null;
   async function save() {
     setBusy(true);
@@ -325,7 +325,7 @@ function CategoryEdit({ cat, onClose }: { cat: Category | null; onClose: () => v
   const store = useStore();
   const [name, setName] = useState("");
   const [color, setColor] = useState("");
-  useEffect(() => { if (cat) { setName(cat.name); setColor(cat.color); } }, [cat]);
+  useEffect(() => { if (cat) { setName(cat.name); setColor(cat.color); } }, [cat?.id]); // eslint-disable-line react-hooks/exhaustive-deps
   if (!cat) return null;
   return (
     <Modal open onClose={onClose} title="Edit category"
@@ -350,7 +350,6 @@ function SettingsAdmin() {
   const [company, setCompany] = useState(store.settings.company_name);
   const [weekStart, setWeekStart] = useState(String(store.settings.week_starts_on));
   const [dayHours, setDayHours] = useState(String(store.settings.hours_per_day ?? 8));
-  const [phases, setPhases] = useState((Array.isArray(store.settings.default_phases) ? store.settings.default_phases : []).join("\n"));
   const [busy, setBusy] = useState(false);
 
   async function save() {
@@ -365,7 +364,6 @@ function SettingsAdmin() {
       { key: "overload_threshold", value: t },
       { key: "company_name", value: company.trim() || "Idea2Launch" },
       { key: "week_starts_on", value: Number(weekStart) },
-      { key: "default_phases", value: phases.split("\n").map((x) => x.trim()).filter(Boolean).slice(0, 20) },
     ];
     const { error } = await supabase.from("app_settings").upsert(rows.map((r) => ({ ...r, updated_at: new Date().toISOString() })));
     const { error: e2 } = mb !== Number(store.settings.max_upload_mb) ? await supabase.rpc("set_max_upload_mb", { p_mb: mb }) : { error: null };
@@ -392,9 +390,6 @@ function SettingsAdmin() {
             <option value="1">Monday</option>
             <option value="0">Sunday</option>
           </Select>
-        </Field>
-        <Field label="Default phases for new projects" hint="One per line. Each new project starts with these; teams can rename or add phases inside a project.">
-          <Textarea value={phases} onChange={(e) => setPhases(e.target.value)} className="max-w-sm" rows={6} />
         </Field>
         <Field label="Company name" hint="Used as the logo's alt text and in exports.">
           <Input value={company} onChange={(e) => setCompany(e.target.value)} className="max-w-sm" />

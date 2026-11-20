@@ -19,7 +19,8 @@ export function CopyTaskModal({ open, task, onClose, onCopied }: {
 
   useEffect(() => {
     if (open) { setTitle(`${task.title} (copy)`); setTarget(task.project_id); setSubs(true); setComments(true); }
-  }, [open, task]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- refill only when opened, not on background refresh
+  }, [open, task.id]);
 
   const targets = store.projects.filter((p) => canEditProject(me, p, store.membersOf(p.id)));
   const subCount = store.tasks.filter((t) => t.parent_id === task.id).length;

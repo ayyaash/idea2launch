@@ -143,13 +143,11 @@ export function ProjectTime({ project }: { project: Project }) {
   const entries = allEntries.filter(inRange);
   const logged = loggedByTask(entries, now);
   const whole = setTotals(tasks, logged);
-  const sections = store.sectionsOf(project.id);
   const top = tasks.filter((t) => !t.parent_id);
   const noEstimate = top.filter((t) => t.status !== "done" && taskTotals(t, tasks, new Map()).estimate === 0).length;
 
   const groups = [
-    ...sections.map((s) => ({ key: s.id, name: s.name, tasks: top.filter((t) => t.section_id === s.id) })),
-    { key: "none", name: sections.length ? "No phase" : "Tasks", tasks: top.filter((t) => !t.section_id || !sections.some((s) => s.id === t.section_id)) },
+    { key: "all", name: "Tasks", tasks: top },
   ].filter((g) => g.tasks.length);
 
   return (

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useStore } from "../lib/store";
 import { useAuth } from "../lib/auth";
@@ -26,8 +26,14 @@ export function ProjectForm({ open, onClose, project }: { open: boolean; onClose
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
 
+  // Fill the form once each time it opens. The app refreshes its data in the background
+  // (every 45 seconds and when the window regains focus); that must not wipe what's being typed.
+  const filledFor = useRef<string | null>(null);
   useEffect(() => {
-    if (!open) return;
+    if (!open) { filledFor.current = null; return; }
+    const key = project?.id ?? "new";
+    if (filledFor.current === key) return;
+    filledFor.current = key;
     setErr("");
     setD(project ? { ...project } : {
       code: suggestCode(store.projects), name: "", description: "", category_id: store.categories[0]?.id ?? null,

@@ -215,23 +215,13 @@ test("reset password, deactivate, delete", async () => {
   assert.equal(del.ok, true);
 });
 
-test("project phases", async () => {
-  const phases = ok(await people.mia.from("project_sections").select("*").eq("project_id", ids.p1).order("sort_order"));
-  assert.deepEqual(phases.map((p) => p.name), ["Planning", "Research", "Development", "Testing", "Launch"]);
-  const otherPhase = ok(await people.mia.from("project_sections").select("id").eq("project_id", ids.p2).limit(1).single());
-  const t = ok(await people.cora.from("tasks").insert({ project_id: ids.p1, title: "Phase test", section_id: phases[1].id }).select().single());
-  assert.equal(t.section_id, phases[1].id);
-  const sub = ok(await people.cora.from("tasks").insert({ project_id: ids.p1, parent_id: t.id, title: "child" }).select().single());
-  assert.equal(sub.section_id, phases[1].id, "subtask follows parent's phase");
-  const moved = ok(await people.cora.from("tasks").update({ section_id: phases[3].id }).eq("id", t.id).select().single());
-  assert.equal(moved.section_id, phases[3].id);
-  const child = ok(await people.mia.from("tasks").select("section_id").eq("id", sub.id).single());
-  assert.equal(child.section_id, phases[3].id);
-  const wrong = ok(await people.cora.from("tasks").update({ section_id: otherPhase.id }).eq("id", t.id).select().single());
-  assert.equal(wrong.section_id, null, "phase from another project is rejected");
-  const { error } = await people.mo.from("project_sections").insert({ project_id: ids.p2, name: "x" });
-  assert.ok(error, "people not on a project cannot add phases");
-  ok(await people.cora.from("project_sections").insert({ project_id: ids.p1, name: "Extra", sort_order: 9 }));
+test("projects are plain tasks and subtasks: no default phases", async () => {
+  const p = ok(await people.admin.from("projects").insert({ code: "NP-" + run, name: "No phases" }).select().single());
+  const phases = ok(await people.admin.from("project_sections").select("id").eq("project_id", p.id));
+  assert.equal(phases.length, 0);
+  const t = ok(await people.admin.from("tasks").insert({ project_id: p.id, title: "Task" }).select().single());
+  const sub = ok(await people.admin.from("tasks").insert({ project_id: p.id, parent_id: t.id, title: "Subtask" }).select().single());
+  assert.equal(sub.parent_id, t.id);
 });
 
 test("new people and admin resets must choose their own password", async () => {

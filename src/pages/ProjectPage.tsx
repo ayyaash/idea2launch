@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { addDays, differenceInCalendarDays, eachWeekOfInterval, format, max as maxDate, min as minDate, startOfDay } from "date-fns";
-import { List, KanbanSquare, GanttChart, Users, Pencil, Trash2, Download, ArrowLeft, CalendarRange, Plus, X, Lock, ChevronRight, ArrowUp, ArrowDown, Clock } from "lucide-react";
+import { List, KanbanSquare, GanttChart, Users, Pencil, Trash2, Download, ArrowLeft, CalendarRange, X, Lock, ChevronRight, Clock } from "lucide-react";
 import { useStore } from "../lib/store";
 import { useAuth } from "../lib/auth";
 import { supabase } from "../lib/supabase";
@@ -153,81 +153,47 @@ type Group = { key: string; title: string; dot?: string; sectionId?: string | nu
 
 function ListView({ projectId, tasks, canEdit, canAdd }: { projectId: string; tasks: Task[]; canEdit: boolean; canAdd: boolean }) {
   const store = useStore();
-  const confirm = useConfirm();
-  const [groupBy, setGroupBy] = useState<"phase" | "status">(() => (localStorage.getItem("i2l-group") as "phase" | "status") || "phase");
+  const [groupBy, setGroupBy] = useState<"none" | "status">(() => (localStorage.getItem("i2l-group") === "status" ? "status" : "none"));
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
-  const [renaming, setRenaming] = useState<string | null>(null);
-  const [newPhase, setNewPhase] = useState("");
-  const sections = store.sectionsOf(projectId);
   const ids = new Set(tasks.map((t) => t.id));
   // subtasks sit under their parent; orphans (parent filtered out) show at top level
   const topLevel = tasks.filter((t) => !t.parent_id || !ids.has(t.parent_id));
   const toggle = (set: Set<string>, id: string, fn: (s: Set<string>) => void) => { const n = new Set(set); if (n.has(id)) n.delete(id); else n.add(id); fn(n); };
-  const setMode = (m: "phase" | "status") => { setGroupBy(m); try { localStorage.setItem("i2l-group", m); } catch { /* ignore */ } };
+  const setMode = (m: "none" | "status") => { setGroupBy(m); try { localStorage.setItem("i2l-group", m); } catch { /* ignore */ } };
 
   const groups: Group[] = groupBy === "status"
     ? TASK_STATUSES.map((st) => ({ key: st, title: TASK_STATUS_LABEL[st], dot: TASK_STATUS_DOT[st], status: st, tasks: topLevel.filter((t) => t.status === st) }))
-    : [
-        ...sections.map((sec) => ({ key: sec.id, title: sec.name, sectionId: sec.id, section: sec, tasks: topLevel.filter((t) => t.section_id === sec.id) })),
-        { key: "none", title: sections.length ? "No phase" : "Tasks", sectionId: null, tasks: topLevel.filter((t) => !t.section_id || !sections.some((x) => x.id === t.section_id)) },
-      ].filter((g) => g.key !== "none" || g.tasks.length > 0 || sections.length === 0);
-
-  async function moveSection(i: number, dir: -1 | 1) {
-    const a = sections[i], b = sections[i + dir];
-    if (!a || !b) return;
-    await Promise.all([
-      supabase.from("project_sections").update({ sort_order: i + dir }).eq("id", a.id),
-      supabase.from("project_sections").update({ sort_order: i }).eq("id", b.id),
-    ]);
-    // normalise the rest so order stays stable
-    await Promise.all(sections.map((s, j) => (j !== i && j !== i + dir && s.sort_order !== j) ? supabase.from("project_sections").update({ sort_order: j }).eq("id", s.id) : null));
-    store.refresh();
-  }
+    : [{ key: "all", title: "Tasks", tasks: topLevel }];
 
   return (
     <div>
       <div className="mb-2 flex items-center gap-1 text-sm">
-        <span className="mr-1 text-slate-500">Group by</span>
-        {(["phase", "status"] as const).map((m) => (
+        <span className="mr-1 text-slate-500">Show</span>
+        {(["none", "status"] as const).map((m) => (
           <button key={m} onClick={() => setMode(m)} aria-pressed={groupBy === m}
             className={cx("rounded-md px-2.5 py-1 font-medium", groupBy === m ? "bg-navy-900 text-white" : "text-slate-600 hover:bg-slate-200")}>
-            {m === "phase" ? "Phase" : "Status"}
+            {m === "none" ? "All tasks" : "By status"}
           </button>
         ))}
       </div>
       <Card className="overflow-hidden">
         <TaskTableHeader />
-        {groups.map((g, gi) => {
+        {groups.map((g) => {
           const isCollapsed = collapsed.has(g.key);
           return (
             <div key={g.key}>
-              <div className="group/h flex items-center gap-2 border-b border-slate-100 bg-slate-50/70 px-3 py-1.5">
-                <button onClick={() => toggle(collapsed, g.key, setCollapsed)} aria-expanded={!isCollapsed}
-                  className="flex min-w-0 flex-1 items-center gap-2 py-0.5 text-left text-sm font-semibold text-slate-800">
-                  <ChevronRight className={cx("size-4 shrink-0 text-slate-400 transition-transform", !isCollapsed && "rotate-90")} />
-                  {g.dot && <span className={cx("size-2.5 rounded-full", g.dot)} />}
-                  {renaming === g.key && g.section ? null : <span className="truncate">{g.title}</span>}
-                  {renaming !== g.key && <span className="font-normal text-slate-400">{g.tasks.length}</span>}
-                </button>
-                {renaming === g.key && g.section && (
-                  <input autoFocus defaultValue={g.section.name} aria-label="Phase name"
-                    className="h-7 flex-1 rounded-md px-2 text-sm ring-1 ring-slate-300 focus:ring-2 focus:ring-brand-500 focus:outline-none"
-                    onBlur={async (e) => { const v = e.target.value.trim(); setRenaming(null); if (v && v !== g.section!.name) await store.mutate(() => supabase.from("project_sections").update({ name: v }).eq("id", g.section!.id)); }}
-                    onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); if (e.key === "Escape") setRenaming(null); }} />
-                )}
-                {canEdit && g.section && renaming !== g.key && (
-                  <span className="flex opacity-100 md:opacity-0 md:group-hover/h:opacity-100 md:focus-within:opacity-100">
-                    <IconButton label={`Rename ${g.title}`} onClick={() => setRenaming(g.key)}><Pencil className="size-3.5" /></IconButton>
-                    <IconButton label={`Move ${g.title} up`} disabled={gi === 0} onClick={() => moveSection(gi, -1)}><ArrowUp className="size-3.5" /></IconButton>
-                    <IconButton label={`Move ${g.title} down`} disabled={gi >= sections.length - 1} onClick={() => moveSection(gi, 1)}><ArrowDown className="size-3.5" /></IconButton>
-                    <IconButton label={`Delete ${g.title}`} onClick={async () => {
-                      if (!(await confirm({ title: `Delete the "${g.title}" phase?`, text: g.tasks.length ? `Its ${g.tasks.length} task(s) are kept and moved to "No phase".` : undefined, confirm: "Delete phase", danger: true }))) return;
-                      store.mutate(() => supabase.from("project_sections").delete().eq("id", g.section!.id));
-                    }}><Trash2 className="size-3.5" /></IconButton>
-                  </span>
-                )}
-              </div>
+              {groupBy === "status" && (
+                <div className="flex items-center gap-2 border-b border-slate-100 bg-slate-50/70 px-3 py-1.5">
+                  <button onClick={() => toggle(collapsed, g.key, setCollapsed)} aria-expanded={!isCollapsed}
+                    className="flex min-w-0 flex-1 items-center gap-2 py-0.5 text-left text-sm font-semibold text-slate-800">
+                    <ChevronRight className={cx("size-4 shrink-0 text-slate-400 transition-transform", !isCollapsed && "rotate-90")} />
+                    {g.dot && <span className={cx("size-2.5 rounded-full", g.dot)} />}
+                    <span className="truncate">{g.title}</span>
+                    <span className="font-normal text-slate-400">{g.tasks.length}</span>
+                  </button>
+                </div>
+              )}
               {!isCollapsed && (
                 <>
                   {g.tasks.map((t) => {
@@ -241,11 +207,14 @@ function ListView({ projectId, tasks, canEdit, canAdd }: { projectId: string; ta
                       </div>
                     );
                   })}
+                  {groupBy === "none" && g.tasks.length === 0 && (
+                    <p className="px-4 py-6 text-center text-sm text-slate-500">No tasks yet.{canAdd ? " Add the first one below." : ""}</p>
+                  )}
                   {canAdd && (
                     <div className="border-b border-slate-100 py-1.5 pr-3 pl-9">
-                      <QuickAdd placeholder={`Add a task to ${g.title}`}
+                      <QuickAdd placeholder={groupBy === "status" ? `Add a task to ${g.title}` : "Add a task and press Enter"}
                         onAdd={(title) => store.mutate(() => supabase.from("tasks").insert({
-                          project_id: projectId, title, ...(g.status ? { status: g.status } : {}), ...(g.sectionId ? { section_id: g.sectionId } : {}),
+                          project_id: projectId, title, ...(g.status ? { status: g.status } : {}),
                         }))} />
                     </div>
                   )}
@@ -254,19 +223,8 @@ function ListView({ projectId, tasks, canEdit, canAdd }: { projectId: string; ta
             </div>
           );
         })}
-        {canEdit && groupBy === "phase" && (
-          <div className="flex items-center gap-2 px-3 py-2">
-            <Plus className="size-4 text-slate-400" />
-            <input value={newPhase} onChange={(e) => setNewPhase(e.target.value)} placeholder="Add a phase (e.g. Prototyping) and press Enter" aria-label="New phase name"
-              className="h-7 flex-1 bg-transparent text-sm font-medium placeholder:font-normal placeholder:text-slate-400 focus:outline-none"
-              onKeyDown={async (e) => {
-                if (e.key !== "Enter" || !newPhase.trim()) return;
-                const name = newPhase.trim(); setNewPhase("");
-                await store.mutate(() => supabase.from("project_sections").insert({ project_id: projectId, name, sort_order: sections.length }));
-              }} />
-          </div>
-        )}
       </Card>
+      {canAdd && <p className="mt-2 text-xs text-slate-500">Open a task to add subtasks under it. Tasks with subtasks have an arrow to show them.</p>}
     </div>
   );
 }

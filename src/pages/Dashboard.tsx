@@ -5,7 +5,7 @@ import { ChevronLeft, ChevronRight, FolderKanban, AlertTriangle, CalendarClock, 
 import { useStore } from "../lib/store";
 import { useAuth } from "../lib/auth";
 import { PROJECT_STATUSES, PROJECT_STATUS_BAR, PROJECT_STATUS_LABEL, PROJECT_STATUS_STYLE, fmtShort, isoDay } from "../lib/format";
-import { inYear, isOverdue, isoToday, monthRange, progressOf, today, weekRange, yearBar } from "../lib/metrics";
+import { inYear, isOverdue, isoToday, monthRange, progressOf, today, weekRange, timelineWindow, windowBar, type Window } from "../lib/metrics";
 import { canCreateProject } from "../lib/perms";
 import { PendingApprovals } from "../components/Approval";
 import { exportToExcel } from "../lib/excel";
@@ -69,7 +69,8 @@ export default function Dashboard() {
   if (!store.ready) return <Spinner />;
 
   const now = new Date();
-  const todayPos = now.getFullYear() === year ? (now.getTime() - new Date(year, 0, 1).getTime()) / (new Date(year + 1, 0, 1).getTime() - new Date(year, 0, 1).getTime()) : null;
+  const win = timelineWindow(yearProjects, store.tasks, year);
+  const todayPos = now >= win.start && now < win.end ? (now.getTime() - win.start.getTime()) / (win.end.getTime() - win.start.getTime()) : null;
   const statusCounts = PROJECT_STATUSES.map((s) => ({ s, n: yearProjects.filter((p) => p.status === s).length }));
   const leads = store.profiles.filter((p) => store.projects.some((x) => x.lead_id === p.id));
   const upcoming = store.tasks
@@ -149,9 +150,12 @@ export default function Dashboard() {
               <div className="min-w-[640px] sm:min-w-[720px]">
                 <div className="grid grid-cols-[170px_1fr] sm:grid-cols-[220px_1fr] border-b border-slate-200 bg-slate-50 text-xs font-medium text-slate-500">
                   <div className="px-4 py-2">Project</div>
-                  <div className="relative grid grid-cols-12">
-                    {MONTHS.map((m, i) => (
-                      <div key={m} className={cx("border-l border-slate-200 py-2 text-center", now.getFullYear() === year && now.getMonth() === i && "font-semibold text-brand-600")}>{m}</div>
+                  <div className="relative grid" style={{ gridTemplateColumns: `repeat(${win.months.length}, minmax(0, 1fr))` }}>
+                    {win.months.map((m) => (
+                      <div key={m.toISOString()} className={cx("border-l border-slate-200 py-2 text-center",
+                        m.getFullYear() === now.getFullYear() && m.getMonth() === now.getMonth() && "font-semibold text-brand-600")}>
+                        {MONTHS[m.getMonth()]}{(m.getMonth() === 0 || m === win.months[0]) && m.getFullYear() !== year ? ` ${String(m.getFullYear()).slice(2)}` : ""}
+                      </div>
                     ))}
                   </div>
                 </div>
@@ -161,7 +165,7 @@ export default function Dashboard() {
                       <span className="size-2.5 rounded-full" style={{ background: g.color }} />{g.name}
                       <span className="font-normal text-slate-400">{g.projects.length}</span>
                     </div>
-                    {g.projects.map((p) => <TimelineRow key={p.id} p={p} year={year} todayPos={todayPos} tasks={store.tasks} onOpen={() => nav(`/projects/${p.id}`)} />)}
+                    {g.projects.map((p) => <TimelineRow key={p.id} p={p} win={win} todayPos={todayPos} tasks={store.tasks} onOpen={() => nav(`/projects/${p.id}`)} />)}
                   </div>
                 ))}
               </div>
@@ -233,9 +237,9 @@ function Kpi({ icon, label, value, tone, onClick, active }: { icon: React.ReactN
   );
 }
 
-function TimelineRow({ p, year, todayPos, tasks, onOpen }: { p: Project; year: number; todayPos: number | null; tasks: Task[]; onOpen: () => void }) {
+function TimelineRow({ p, win, todayPos, tasks, onOpen }: { p: Project; win: Window; todayPos: number | null; tasks: Task[]; onOpen: () => void }) {
   const store = useStore();
-  const bar = yearBar(p, year);
+  const bar = windowBar(p, win);
   const prog = progressOf(p.id, tasks);
   const lead = p.lead_id ? store.profileById.get(p.lead_id) : undefined;
   const color = PROJECT_STATUS_BAR[p.status];
@@ -251,7 +255,7 @@ function TimelineRow({ p, year, todayPos, tasks, onOpen }: { p: Project; year: n
         </span>
       </button>
       <div className="relative">
-        <div className="absolute inset-0 grid grid-cols-12">{MONTHS.map((m) => <div key={m} className="border-l border-slate-100" />)}</div>
+        <div className="absolute inset-0 grid" style={{ gridTemplateColumns: `repeat(${win.months.length}, minmax(0, 1fr))` }}>{win.months.map((m) => <div key={m.toISOString()} className="border-l border-slate-100" />)}</div>
         {todayPos !== null && <div className="absolute inset-y-0 w-px bg-brand-500/70" style={{ left: `${todayPos * 100}%` }} aria-hidden />}
         <button onClick={onOpen} title={`${p.name}: ${fmtShort(p.start_date) || "?"} – ${fmtShort(p.end_date) || "open"} · ${PROJECT_STATUS_LABEL[p.status]} · ${prog.done}/${prog.total} tasks done`}
           className={cx("absolute top-1/2 h-6 -translate-y-1/2 overflow-hidden text-left shadow-sm", bar.openStart ? "rounded-l-none" : "rounded-l-md", bar.openEnd ? "rounded-r-none" : "rounded-r-md")}

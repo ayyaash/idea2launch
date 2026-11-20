@@ -65,3 +65,48 @@ export function taskWindow(t: Task, now = today()): { start: Date; end: Date } |
 export function overlaps(w: { start: Date; end: Date }, r: { start: Date; end: Date }) {
   return w.start <= r.end && w.end >= r.start;
 }
+
+export interface Window { start: Date; end: Date; months: Date[] }
+
+/**
+ * The months the dashboard timeline shows: from the earliest project start to the latest end
+ * among the year's projects (kept inside that year), at least 3 months wide.
+ * Open-ended projects count up to their latest task due date, or today.
+ */
+export function timelineWindow(projects: Project[], tasks: Task[], year: number): Window {
+  const ys = new Date(year, 0, 1), ye = new Date(year + 1, 0, 1);
+  let lo: Date | null = null, hi: Date | null = null;
+  for (const p of projects) {
+    const s = toDate(p.start_date) ?? toDate(p.created_at.slice(0, 10)) ?? ys;
+    let e = toDate(p.end_date);
+    if (!e) {
+      const due = tasks.filter((t) => t.project_id === p.id && t.due_date).map((t) => t.due_date!).sort().pop();
+      e = toDate(due ?? null) ?? today();
+      if (e < s) e = s;
+    }
+    if (!lo || s < lo) lo = s;
+    if (!hi || e > hi) hi = e;
+  }
+  let start = startOfMonth(lo && lo > ys ? lo : ys);
+  const last = hi && hi < ye ? hi : addDays(ye, -1);
+  let end = new Date(last.getFullYear(), last.getMonth() + 1, 1);
+  if (!lo) { start = ys; end = ye; }
+  // at least 3 months: grow forward, then backward, inside the year
+  const monthsBetween = () => (end.getFullYear() - start.getFullYear()) * 12 + end.getMonth() - start.getMonth();
+  while (monthsBetween() < 3 && end < ye) end = new Date(end.getFullYear(), end.getMonth() + 1, 1);
+  while (monthsBetween() < 3 && start > ys) start = new Date(start.getFullYear(), start.getMonth() - 1, 1);
+  const months: Date[] = [];
+  for (let m = new Date(start); m < end; m = new Date(m.getFullYear(), m.getMonth() + 1, 1)) months.push(m);
+  return { start, end, months };
+}
+
+/** Fraction (0..1) positions of a project's bar inside the timeline window. */
+export function windowBar(p: Project, w: Window) {
+  const ws = w.start.getTime(), span = w.end.getTime() - ws;
+  const s = toDate(p.start_date)?.getTime() ?? ws;
+  const eRaw = toDate(p.end_date);
+  const e = eRaw ? addDays(eRaw, 1).getTime() : w.end.getTime();
+  const left = Math.max(0, (s - ws) / span);
+  const right = Math.min(1, (e - ws) / span);
+  return { left, width: Math.max(0.01, right - left), openStart: s < ws, openEnd: !eRaw || e > w.end.getTime() };
+}

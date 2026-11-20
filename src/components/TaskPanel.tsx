@@ -188,18 +188,6 @@ function TaskPanel({ taskId, onClose }: { taskId: string; onClose: () => void })
               {TASK_STATUSES.map((s) => <option key={s} value={s}>{TASK_STATUS_LABEL[s]}</option>)}
             </Select>
           </dd>
-          {!task.parent_id && (
-            <>
-              <dt className="text-slate-500">Phase</dt>
-              <dd>
-                <Select aria-label="Phase" value={task.section_id ?? ""} disabled={!canEdit} className="max-w-52"
-                  onChange={(e) => patch({ section_id: e.target.value || null })}>
-                  <option value="">No phase</option>
-                  {store.sectionsOf(project.id).map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-                </Select>
-              </dd>
-            </>
-          )}
           <dt className="text-slate-500">Priority</dt>
           <dd>
             <Select aria-label="Priority" value={task.priority} disabled={!canEdit} className="max-w-52"
