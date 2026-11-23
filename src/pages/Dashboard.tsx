@@ -75,7 +75,14 @@ export default function Dashboard() {
   }, [yearProjects, store.categories, store.categoryById]);
 
   const fit = timelineWindow(yearProjects, store.tasks, year);
-  const win = scrollWindow(yearProjects, store.tasks, year);
+  const [more, setMore] = useState(0);
+  useEffect(() => setMore(0), [year]);
+  const win = scrollWindow(yearProjects, store.tasks, year, more);
+  // Near the right edge, add another year so the timeline keeps going.
+  const onTimelineScroll = () => {
+    const el = scroller.current; if (!el) return;
+    if (el.scrollLeft + el.clientWidth > el.scrollWidth - monthPx() * span && more < 120) setMore((m) => m + 12);
+  };
   const monthPx = () => { const el = scroller.current; return el ? (el.clientWidth - PROJECT_COL) / span : 0; };
   const scrollToMonth = (d: Date, smooth = true) => {
     const el = scroller.current; if (!el) return;
@@ -195,7 +202,7 @@ export default function Dashboard() {
                 action={canCreateProject(me) && <Button variant="primary" icon={<Plus className="size-4" />} onClick={() => setNewOpen(true)}>New project</Button>} />
             </div>
           ) : (
-            <div ref={scroller} className="overflow-x-auto scroll-thin" style={{ scrollPaddingLeft: PROJECT_COL }}>
+            <div ref={scroller} onScroll={onTimelineScroll} className="overflow-x-auto scroll-thin" style={{ scrollPaddingLeft: PROJECT_COL }}>
               <div style={{ width: `calc(${PROJECT_COL}px + (100% - ${PROJECT_COL}px) * ${win.months.length / span})`, minWidth: PROJECT_COL + win.months.length * 48 }}>
                 <div ref={headerRef} className="sticky top-0 grid border-b border-slate-200 bg-slate-50 text-xs font-medium text-slate-500" style={{ gridTemplateColumns: `${PROJECT_COL}px 1fr` }}>
                   <div className="sticky left-0 z-20 bg-slate-50 px-4 py-2">Project</div>

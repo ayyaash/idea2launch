@@ -99,11 +99,11 @@ export function timelineWindow(projects: Project[], tasks: Task[], year: number)
 }
 
 /**
- * The whole scrollable timeline: at least the selected year, stretched back to the earliest
- * project start and forward to the latest end (open-ended projects: latest task due date or today),
- * kept within 3 years before and 4 years after.
+ * The whole scrollable timeline: the selected year, stretched to the earliest project start and
+ * the latest end (open-ended projects: latest task due date or today), plus a year either side.
+ * `more` adds months at the end, so the timeline keeps going as you scroll forward.
  */
-export function scrollWindow(projects: Project[], tasks: Task[], year: number): Window {
+export function scrollWindow(projects: Project[], tasks: Task[], year: number, more = 0): Window {
   let start = new Date(year, 0, 1), end = new Date(year + 1, 0, 1);
   for (const p of projects) {
     const s = toDate(p.start_date) ?? toDate(p.created_at.slice(0, 10));
@@ -115,8 +115,9 @@ export function scrollWindow(projects: Project[], tasks: Task[], year: number): 
     if (s && s < start) start = s;
     if (e && e >= end) end = new Date(e.getFullYear(), e.getMonth() + 1, 1);
   }
-  const lo = new Date(year - 3, 0, 1), hi = new Date(year + 5, 0, 1);
-  return monthWindow(start < lo ? lo : start, end > hi ? hi : end);
+  const lo = new Date(year - 5, 0, 1);
+  if (start < lo) start = lo;
+  return monthWindow(new Date(start.getFullYear() - 1, start.getMonth(), 1), new Date(end.getFullYear() + 1, end.getMonth() + more, 1));
 }
 
 /** A timeline window covering whole months, from `start`'s month up to (not including) `end`'s month. */
