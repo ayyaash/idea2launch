@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { CheckCircle2, Circle, ChevronRight, Lock, ListTree } from "lucide-react";
 import { useStore } from "../lib/store";
 import { PRIORITY_LABEL, PRIORITY_STYLE, TASK_STATUS_LABEL, TASK_STATUS_STYLE, dueLabel, fmtRange, fmtShort } from "../lib/format";
@@ -6,8 +7,10 @@ import { Avatar, Pill, cx } from "./ui";
 import { DueBadge, useOpenTask, useStatusChange } from "./TaskPanel";
 
 /** One task line used in project lists and "My tasks". */
-export function TaskRow({ task, canEdit, showProject, depth = 0, expanded, onToggleExpand }: {
+export function TaskRow({ task, canEdit, showProject, depth = 0, expanded, onToggleExpand, dragHandle }: {
   task: Task; canEdit: boolean; showProject?: boolean; depth?: number; expanded?: boolean; onToggleExpand?: () => void;
+  /** Grip shown at the start of the row, for drag-to-reorder lists. */
+  dragHandle?: ReactNode;
 }) {
   const store = useStore();
   const openTask = useOpenTask();
@@ -22,6 +25,7 @@ export function TaskRow({ task, canEdit, showProject, depth = 0, expanded, onTog
   return (
     <div role="row" className="group grid grid-cols-[1fr_auto] items-center gap-2 border-b border-slate-100 px-3 py-2 hover:bg-slate-50 md:grid-cols-[minmax(0,1fr)_150px_110px_88px_110px]">
       <div className="flex min-w-0 items-center gap-2" style={{ paddingLeft: depth * 26 }}>
+        {dragHandle}
         {onToggleExpand ? (
           <button aria-label={expanded ? "Hide subtasks" : "Show subtasks"} onClick={onToggleExpand} className="text-slate-400 hover:text-slate-700">
             <ChevronRight className={cx("size-4 transition-transform", expanded && "rotate-90")} />

@@ -1,7 +1,7 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { addDays, differenceInCalendarDays, eachWeekOfInterval, format, max as maxDate, min as minDate, startOfDay } from "date-fns";
-import { List, KanbanSquare, GanttChart, Users, Pencil, Trash2, Download, ArrowLeft, CalendarRange, X, Lock, ChevronRight, Clock, Copy as CopyIcon } from "lucide-react";
+import { List, KanbanSquare, GanttChart, Users, Pencil, Trash2, Download, ArrowLeft, CalendarRange, X, Lock, ChevronRight, Clock, Copy as CopyIcon, GripVertical } from "lucide-react";
 import { useStore } from "../lib/store";
 import { useAuth } from "../lib/auth";
 import { supabase } from "../lib/supabase";
@@ -164,6 +164,7 @@ function ListView({ projectId, tasks, canEdit, canAdd }: { projectId: string; ta
   // subtasks sit under their parent; orphans (parent filtered out) show at top level
   const topLevel = tasks.filter((t) => !t.parent_id || !ids.has(t.parent_id));
   const toggle = (set: Set<string>, id: string, fn: (s: Set<string>) => void) => { const n = new Set(set); if (n.has(id)) n.delete(id); else n.add(id); fn(n); };
+  const drag = useTaskReorder(projectId);
   const setMode = (m: "none" | "status") => { setGroupBy(m); try { localStorage.setItem("i2l-group", m); } catch { /* ignore */ } };
 
   const groups: Group[] = groupBy === "status"
@@ -205,9 +206,15 @@ function ListView({ projectId, tasks, canEdit, canAdd }: { projectId: string; ta
                     const open = expanded.has(t.id);
                     return (
                       <div key={t.id}>
-                        <TaskRow task={t} canEdit={canEdit} expanded={open}
-                          onToggleExpand={subs.length ? () => toggle(expanded, t.id, setExpanded) : undefined} />
-                        {open && subs.map((s) => <TaskRow key={s.id} task={s} canEdit={canEdit} depth={1} />)}
+                        <div {...drag.rowProps(t)}>
+                          <TaskRow task={t} canEdit={canEdit} expanded={open} dragHandle={canEdit && drag.handle(t)}
+                            onToggleExpand={subs.length ? () => toggle(expanded, t.id, setExpanded) : undefined} />
+                        </div>
+                        {open && subs.map((s) => (
+                          <div key={s.id} {...drag.rowProps(s)}>
+                            <TaskRow task={s} canEdit={canEdit} depth={1} dragHandle={canEdit && drag.handle(s)} />
+                          </div>
+                        ))}
                       </div>
                     );
                   })}
@@ -228,9 +235,85 @@ function ListView({ projectId, tasks, canEdit, canAdd }: { projectId: string; ta
           );
         })}
       </Card>
-      {canAdd && <p className="mt-2 text-xs text-slate-500">Open a task to add subtasks under it. Tasks with subtasks have an arrow to show them.</p>}
+      {canAdd && <p className="mt-2 text-xs text-slate-500">Open a task to add subtasks under it. Tasks with subtasks have an arrow to show them.{canEdit ? " Drag the dots on the left to change the order." : ""}</p>}
     </div>
   );
+}
+
+/**
+ * Drag to reorder: press the grip and move up or down (mouse, pen or touch).
+ * A task moves among its siblings: main tasks among main tasks, subtasks inside their main task.
+ */
+function useTaskReorder(projectId: string) {
+  const store = useStore();
+  const [drag, setDrag] = useState<{ id: string; parent: string | null; overId: string | null; before: boolean } | null>(null);
+  const live = useRef(drag);
+  live.current = drag;
+
+  function finish() {
+    const d = live.current;
+    setDrag(null);
+    if (!d || !d.overId || d.overId === d.id) return;
+    const siblings = store.tasks.filter((t) => t.project_id === projectId && (t.parent_id ?? null) === d.parent && t.id !== d.id);
+    const moved = store.taskById.get(d.id);
+    let i = siblings.findIndex((t) => t.id === d.overId);
+    if (!moved || i < 0) return;
+    if (!d.before) i += 1;
+    const list = [...siblings.slice(0, i), moved, ...siblings.slice(i)];
+    const prev = list[i - 1]?.sort_order, next = list[i + 1]?.sort_order;
+    let orders: { id: string; sort_order: number }[];
+    if (prev === undefined && next !== undefined) orders = [{ id: moved.id, sort_order: next - 1024 }];
+    else if (next === undefined && prev !== undefined) orders = [{ id: moved.id, sort_order: prev + 1024 }];
+    else if (prev !== undefined && next !== undefined && next - prev > 1e-6) orders = [{ id: moved.id, sort_order: (prev + next) / 2 }];
+    else {
+      // equal neighbours: number the whole list again
+      const base = list[0]?.sort_order ?? 0;
+      orders = list.map((t, k) => ({ id: t.id, sort_order: base + k * 1024 })).filter((o) => o.sort_order !== store.taskById.get(o.id)?.sort_order);
+    }
+    store.reorderTasks(orders);
+  }
+
+  function start(e: React.PointerEvent, t: Task) {
+    e.preventDefault();
+    const parent = t.parent_id ?? null;
+    setDrag({ id: t.id, parent, overId: null, before: true });
+    const move = (ev: PointerEvent) => {
+      const row = (document.elementFromPoint(ev.clientX, ev.clientY) as HTMLElement | null)?.closest<HTMLElement>("[data-drag-id]");
+      if (!row || (row.dataset.dragParent || null) !== parent) return;
+      const r = row.getBoundingClientRect();
+      const next = { id: t.id, parent, overId: row.dataset.dragId!, before: ev.clientY < r.top + r.height / 2 };
+      const cur = live.current;
+      if (!cur || cur.overId !== next.overId || cur.before !== next.before) setDrag(next);
+    };
+    const up = () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      window.removeEventListener("pointercancel", cancel);
+      finish();
+    };
+    const cancel = () => { live.current = null; up(); };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+    window.addEventListener("pointercancel", cancel);
+  }
+
+  return {
+    rowProps: (t: Task) => ({
+      "data-drag-id": t.id,
+      "data-drag-parent": t.parent_id ?? "",
+      className: cx("relative", drag?.id === t.id && "opacity-50",
+        drag && drag.overId === t.id && drag.id !== t.id && (drag.before
+          ? "before:absolute before:inset-x-0 before:-top-px before:z-10 before:h-0.5 before:bg-brand-500"
+          : "after:absolute after:inset-x-0 after:-bottom-px after:z-10 after:h-0.5 after:bg-brand-500")),
+    }),
+    handle: (t: Task) => (
+      <span role="button" tabIndex={-1} aria-label={`Drag to move "${t.title}"`} title="Drag to change the order"
+        onPointerDown={(e) => start(e, t)}
+        className="-ml-1 flex shrink-0 cursor-grab touch-none items-center text-slate-300 opacity-60 group-hover:opacity-100 hover:text-slate-500 active:cursor-grabbing">
+        <GripVertical className="size-4" />
+      </span>
+    ),
+  };
 }
 
 /* ------------------------------ Board ------------------------------ */

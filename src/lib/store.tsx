@@ -37,6 +37,8 @@ interface Store extends Data {
   mutate: <T>(fn: () => PromiseLike<{ data: T | null; error: { message: string } | null }>, opts?: { success?: string; silent?: boolean }) => Promise<T | null>;
   patchTask: (id: string, patch: Partial<Task>) => Promise<boolean>;
   patchProject: (id: string, patch: Partial<Project>) => Promise<boolean>;
+  /** Save a new order for some tasks (shown at once, then saved). */
+  reorderTasks: (orders: { id: string; sort_order: number }[]) => Promise<boolean>;
 }
 
 const StoreContext = createContext<Store | null>(null);
@@ -69,7 +71,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         fetchAll<Project>((a, b) => supabase.from("projects").select("*").order("start_date", { nullsFirst: false }).range(a, b)),
         fetchAll<ProjectMember>((a, b) => supabase.from("project_members").select("project_id,user_id").range(a, b)),
         fetchAll<Section>((a, b) => supabase.from("project_sections").select("*").order("sort_order").order("created_at").range(a, b)),
-        fetchAll<Task>((a, b) => supabase.from("tasks").select("*").order("sort_order").range(a, b)),
+        fetchAll<Task>((a, b) => supabase.from("tasks").select("*").order("sort_order").order("created_at").order("id").range(a, b)),
         fetchAll<Collaborator>((a, b) => supabase.from("task_collaborators").select("*").range(a, b)),
         fetchAll<Dependency>((a, b) => supabase.from("task_dependencies").select("task_id,depends_on_id").range(a, b)),
         fetchAll<{ key: string; value: unknown }>((a, b) => supabase.from("app_settings").select("key,value").range(a, b)),
@@ -136,6 +138,17 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     return r !== null;
   }, [mutate, toast]);
 
+  const reorderTasks = useCallback(async (orders: { id: string; sort_order: number }[]) => {
+    if (!orders.length) return true;
+    const m = new Map(orders.map((o) => [o.id, o.sort_order]));
+    setData((d) => ({ ...d, tasks: d.tasks.map((t) => (m.has(t.id) ? { ...t, sort_order: m.get(t.id)! } : t)).sort((a, b) => a.sort_order - b.sort_order || a.created_at.localeCompare(b.created_at) || a.id.localeCompare(b.id)) }));
+    const results = await Promise.all(orders.map((o) => supabase.from("tasks").update({ sort_order: o.sort_order }).eq("id", o.id).select("id")));
+    const failed = results.find((r) => r.error || !r.data?.length);
+    if (failed) toast.error(failed.error ? errorText(failed.error) : "You don't have permission to change this task.");
+    await refresh();
+    return !failed;
+  }, [refresh, toast]);
+
   const patchProject = useCallback(async (id: string, patch: Partial<Project>) => {
     setData((d) => ({ ...d, projects: d.projects.map((p) => (p.id === id ? { ...p, ...patch } : p)) }));
     const r = await mutate(() => supabase.from("projects").update(patch).eq("id", id).select("id"));
@@ -166,9 +179,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       ...data, profileById, projectById, categoryById, taskById,
       membersOf: (id: string) => memberMap.get(id) ?? empty,
       sectionsOf: (id: string) => sectionsByProject.get(id) ?? [],
-      refresh, refreshNotifications, mutate, patchTask, patchProject,
+      refresh, refreshNotifications, mutate, patchTask, patchProject, reorderTasks,
     };
-  }, [data, refresh, refreshNotifications, mutate, patchTask, patchProject]);
+  }, [data, refresh, refreshNotifications, mutate, patchTask, patchProject, reorderTasks]);
 
   return <StoreContext.Provider value={store}>{children}</StoreContext.Provider>;
 }
