@@ -11,7 +11,7 @@ import { PersonSelect } from "./pickers";
 
 type Draft = Pick<Project, "code" | "name" | "description" | "category_id" | "status" | "lead_id" | "start_date" | "end_date">;
 
-function suggestCode(projects: Project[]) {
+export function suggestCode(projects: Project[]) {
   const year = new Date().getFullYear();
   const prefix = `RD-${year}-`;
   const nums = projects.map((p) => p.code.startsWith(prefix) ? parseInt(p.code.slice(prefix.length), 10) : 0).filter((n) => !isNaN(n));

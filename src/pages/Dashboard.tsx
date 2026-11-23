@@ -5,14 +5,37 @@ import { ChevronLeft, ChevronRight, FolderKanban, AlertTriangle, CalendarClock, 
 import { useStore } from "../lib/store";
 import { useAuth } from "../lib/auth";
 import { PROJECT_STATUSES, PROJECT_STATUS_BAR, PROJECT_STATUS_LABEL, PROJECT_STATUS_STYLE, fmtShort, isoDay } from "../lib/format";
-import { inYear, isOverdue, isoToday, monthRange, progressOf, today, weekRange, timelineWindow, windowBar, type Window } from "../lib/metrics";
+import { inYear, isOverdue, isoToday, monthRange, progressOf, today, weekRange, timelineWindow, monthWindow, windowBar, type Window } from "../lib/metrics";
 import { canCreateProject } from "../lib/perms";
 import { PendingApprovals } from "../components/Approval";
 import { exportToExcel } from "../lib/excel";
 import type { Project, ProjectStatus, Task } from "../lib/types";
-import { Avatar, Button, Card, EmptyState, PageHeader, Pill, Select, Spinner, cx } from "../components/ui";
+import { Avatar, Button, Card, EmptyState, Input, PageHeader, Pill, Select, Spinner, cx } from "../components/ui";
 import { ProjectForm } from "../components/ProjectForm";
 import { DueBadge } from "../components/TaskPanel";
+
+type Range = "fit" | "year" | "h1" | "h2" | "q1" | "q2" | "q3" | "q4" | "custom";
+const RANGE_MONTHS: Record<Exclude<Range, "fit" | "custom">, [number, number]> = {
+  year: [0, 12], h1: [0, 6], h2: [6, 12], q1: [0, 3], q2: [3, 6], q3: [6, 9], q4: [9, 12],
+};
+const ym = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+const fromYm = (v: string) => { const [y, m] = v.split("-").map(Number); return y && m ? new Date(y, m - 1, 1) : null; };
+
+/** The months the timeline shows for the chosen range. */
+function rangeWindow(range: Range, year: number, fit: Window, from: string, to: string): Window {
+  if (range === "fit") return fit;
+  if (range === "custom") {
+    const f = fromYm(from), t = fromYm(to);
+    if (!f || !t) return fit;
+    const [a, b] = f <= t ? [f, t] : [t, f];
+    // at most 3 years, to keep the columns readable
+    const end = new Date(b.getFullYear(), b.getMonth() + 1, 1);
+    const cap = new Date(a.getFullYear() + 3, a.getMonth(), 1);
+    return monthWindow(a, end < cap ? end : cap);
+  }
+  const [m1, m2] = RANGE_MONTHS[range];
+  return monthWindow(new Date(year, m1, 1), new Date(year, m2, 1));
+}
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
@@ -26,6 +49,11 @@ export default function Dashboard() {
   const [lead, setLead] = useState("");
   const [newOpen, setNewOpen] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
+  // Timeline range: fit to the projects (default), a fixed part of the year, or custom months.
+  const [range, setRange] = useState<Range>("fit");
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
+  const changeYear = (y: number) => { setYear(y); if (range === "custom") setRange("fit"); };
 
   const yearProjects = useMemo(() => store.projects
     .filter((p) => p.approval !== "pending" && p.approval !== "rejected")
@@ -69,7 +97,8 @@ export default function Dashboard() {
   if (!store.ready) return <Spinner />;
 
   const now = new Date();
-  const win = timelineWindow(yearProjects, store.tasks, year);
+  const fit = timelineWindow(yearProjects, store.tasks, year);
+  const win = rangeWindow(range, year, fit, from, to);
   const todayPos = now >= win.start && now < win.end ? (now.getTime() - win.start.getTime()) / (win.end.getTime() - win.start.getTime()) : null;
   const statusCounts = PROJECT_STATUSES.map((s) => ({ s, n: yearProjects.filter((p) => p.status === s).length }));
   const leads = store.profiles.filter((p) => store.projects.some((x) => x.lead_id === p.id));
@@ -89,9 +118,9 @@ export default function Dashboard() {
         subtitle={`Hello ${me?.full_name.split(" ")[0] ?? ""}. Here's every R&D project running in ${year}.`}
         actions={<>
           <div className="flex items-center rounded-lg bg-white ring-1 ring-slate-300">
-            <button aria-label="Previous year" className="p-2 text-slate-500 hover:text-slate-900" onClick={() => setYear(year - 1)}><ChevronLeft className="size-4" /></button>
+            <button aria-label="Previous year" className="p-2 text-slate-500 hover:text-slate-900" onClick={() => changeYear(year - 1)}><ChevronLeft className="size-4" /></button>
             <span className="min-w-12 text-center text-sm font-semibold" aria-live="polite">{year}</span>
-            <button aria-label="Next year" className="p-2 text-slate-500 hover:text-slate-900" onClick={() => setYear(year + 1)}><ChevronRight className="size-4" /></button>
+            <button aria-label="Next year" className="p-2 text-slate-500 hover:text-slate-900" onClick={() => changeYear(year + 1)}><ChevronRight className="size-4" /></button>
           </div>
           <Button icon={<Filter className="size-4" />} onClick={() => setShowFilters((s) => !s)} className={cx((category || status || lead) && "ring-brand-400 text-brand-700")}>Filters</Button>
           <Button icon={<Download className="size-4" />} onClick={exportYear}>Excel</Button>
@@ -131,13 +160,38 @@ export default function Dashboard() {
       <div className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
         {/* Year timeline */}
         <Card className="min-w-0 overflow-hidden">
-          <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 px-4 py-3">
             <h2 className="font-semibold">Projects in {year} <span className="ml-1 text-sm font-normal text-slate-500">({yearProjects.length})</span></h2>
-            <div className="hidden gap-3 text-xs text-slate-500 md:flex">
+            <div className="flex flex-wrap items-center gap-2">
+              <Select aria-label="Timeline range" value={range} className="h-8 w-auto py-1 text-[13px]"
+                onChange={(e) => {
+                  const r = e.target.value as Range;
+                  if (r === "custom" && !from) { setFrom(ym(fit.start)); setTo(ym(new Date(fit.end.getFullYear(), fit.end.getMonth() - 1, 1))); }
+                  setRange(r);
+                }}>
+                <option value="fit">Fit to projects</option>
+                <option value="year">Whole year</option>
+                <option value="h1">Jan – Jun</option>
+                <option value="h2">Jul – Dec</option>
+                <option value="q1">Q1 (Jan – Mar)</option>
+                <option value="q2">Q2 (Apr – Jun)</option>
+                <option value="q3">Q3 (Jul – Sep)</option>
+                <option value="q4">Q4 (Oct – Dec)</option>
+                <option value="custom">Choose months…</option>
+              </Select>
+              {range === "custom" && (
+                <span className="flex items-center gap-1 text-[13px] text-slate-600">
+                  <Input type="month" aria-label="From month" value={from} onChange={(e) => setFrom(e.target.value)} className="h-8 w-36 py-1 text-[13px]" />
+                  to
+                  <Input type="month" aria-label="To month" value={to} min={from || undefined} onChange={(e) => setTo(e.target.value)} className="h-8 w-36 py-1 text-[13px]" />
+                </span>
+              )}
+            </div>
+          </div>
+          <div className="hidden justify-end gap-3 border-b border-slate-100 px-4 py-1.5 text-xs text-slate-500 md:flex">
               {PROJECT_STATUSES.map((s) => (
                 <span key={s} className="flex items-center gap-1"><span className="size-2.5 rounded-sm" style={{ background: PROJECT_STATUS_BAR[s] }} />{PROJECT_STATUS_LABEL[s]}</span>
               ))}
-            </div>
           </div>
           {yearProjects.length === 0 ? (
             <div className="p-6">
@@ -257,12 +311,18 @@ function TimelineRow({ p, win, todayPos, tasks, onOpen }: { p: Project; win: Win
       <div className="relative">
         <div className="absolute inset-0 grid" style={{ gridTemplateColumns: `repeat(${win.months.length}, minmax(0, 1fr))` }}>{win.months.map((m) => <div key={m.toISOString()} className="border-l border-slate-100" />)}</div>
         {todayPos !== null && <div className="absolute inset-y-0 w-px bg-brand-500/70" style={{ left: `${todayPos * 100}%` }} aria-hidden />}
+        {bar.outside ? (
+          <button onClick={onOpen} className={cx("absolute inset-y-0 flex items-center px-2 text-[11px] text-slate-400 hover:text-brand-600", bar.outside === "before" ? "left-0" : "right-0")}>
+            {bar.outside === "before" ? `← ${p.code} ended ${fmtShort(p.end_date)}` : `${p.code} starts ${fmtShort(p.start_date)} →`}
+          </button>
+        ) : (
         <button onClick={onOpen} title={`${p.name}: ${fmtShort(p.start_date) || "?"} – ${fmtShort(p.end_date) || "open"} · ${PROJECT_STATUS_LABEL[p.status]} · ${prog.done}/${prog.total} tasks done`}
           className={cx("absolute top-1/2 h-6 -translate-y-1/2 overflow-hidden text-left shadow-sm", bar.openStart ? "rounded-l-none" : "rounded-l-md", bar.openEnd ? "rounded-r-none" : "rounded-r-md")}
           style={{ left: `${bar.left * 100}%`, width: `${bar.width * 100}%`, background: `${color}33`, boxShadow: `inset 0 0 0 1px ${color}` }}>
           <span className="absolute inset-y-0 left-0" style={{ width: `${prog.pct}%`, background: color, opacity: 0.85 }} />
           <span className="relative truncate px-2 text-[11px] leading-6 font-medium text-slate-900">{p.code}</span>
         </button>
+        )}
       </div>
     </div>
   );

@@ -7,7 +7,7 @@ import { useStore } from "../lib/store";
 import { useAuth } from "../lib/auth";
 import { supabase, errorText } from "../lib/supabase";
 import {
-  PRIORITIES, PRIORITY_LABEL, TASK_STATUSES, TASK_STATUS_LABEL, TASK_STATUS_DOT, fmtBytes, timeAgo, dueLabel,
+  PRIORITIES, PRIORITY_LABEL, TASK_STATUSES, TASK_STATUS_LABEL, TASK_STATUS_DOT, fmtBytes, fmtDate, timeAgo, dueLabel,
 } from "../lib/format";
 import { canDeleteTask, canEditProject, canContribute, isManager } from "../lib/perms";
 import type { Attachment, Comment, Task, TaskStatus } from "../lib/types";
@@ -116,6 +116,15 @@ function TaskPanel({ taskId, onClose }: { taskId: string; onClose: () => void })
 
   const patch = (p: Partial<Task>) => store.patchTask(task.id, p);
 
+  /** Subtask dates must stay inside the main task's dates. */
+  function setDate(key: "start_date" | "due_date", v: string | null) {
+    if (v && parent) {
+      if (parent.start_date && v < parent.start_date) { toast.error(`A subtask can't start before its main task (${fmtDate(parent.start_date, "d MMM yyyy")}).`); return; }
+      if (parent.due_date && v > parent.due_date) { toast.error(`A subtask can't end after its main task (${fmtDate(parent.due_date, "d MMM yyyy")}).`); return; }
+    }
+    patch({ [key]: v });
+  }
+
   async function remove() {
     const ok = await confirm({
       title: "Delete this task?",
@@ -213,13 +222,23 @@ function TaskPanel({ taskId, onClose }: { taskId: string; onClose: () => void })
           </dd>
           <dt className="text-slate-500">Start date</dt>
           <dd><Input type="date" aria-label="Start date" value={task.start_date ?? ""} disabled={!canEdit} className="max-w-44"
-            onChange={(e) => patch({ start_date: e.target.value || null })} /></dd>
+            min={parent?.start_date ?? undefined} max={(task.due_date ?? parent?.due_date) ?? undefined}
+            onChange={(e) => setDate("start_date", e.target.value || null)} /></dd>
           <dt className="text-slate-500">Due date</dt>
           <dd className="flex items-center gap-2">
             <Input type="date" aria-label="Due date" value={task.due_date ?? ""} disabled={!canEdit} className="max-w-44"
-              min={task.start_date ?? undefined} onChange={(e) => patch({ due_date: e.target.value || null })} />
+              min={(task.start_date ?? parent?.start_date) ?? undefined} max={parent?.due_date ?? undefined}
+              onChange={(e) => setDate("due_date", e.target.value || null)} />
             <DueBadge task={task} />
           </dd>
+          {parent && (parent.start_date || parent.due_date) && (
+            <dd className="col-start-2 -mt-1 text-xs text-slate-500">
+              Must be within the main task's dates: {parent.start_date ? fmtDate(parent.start_date, "d MMM yyyy") : "any start"} – {parent.due_date ? fmtDate(parent.due_date, "d MMM yyyy") : "no due date"}.
+            </dd>
+          )}
+          {!parent && subtasks.some((s) => s.start_date || s.due_date) && (
+            <dd className="col-start-2 -mt-1 text-xs text-slate-500">Subtask dates move to stay inside these dates.</dd>
+          )}
         </dl>
 
         {/* description */}
@@ -253,10 +272,12 @@ function TaskPanel({ taskId, onClose }: { taskId: string; onClose: () => void })
           {task.parent_id && <p className="mt-1 text-xs text-slate-500">Subtasks can't have their own subtasks.</p>}
         </Section>
 
-        {/* time */}
-        <Section title="Time" icon={<Clock className="size-4" />}>
-          <TaskTime task={task} canEdit={canEdit} />
-        </Section>
+        {/* time: on main tasks only (subtasks' work is logged on their main task) */}
+        {!task.parent_id && (
+          <Section title="Time" icon={<Clock className="size-4" />}>
+            <TaskTime task={task} canEdit={canEdit} />
+          </Section>
+        )}
 
         {/* dependencies */}
         <Section title="Dependencies" icon={<Link2 className="size-4" />}>

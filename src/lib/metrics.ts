@@ -95,9 +95,17 @@ export function timelineWindow(projects: Project[], tasks: Task[], year: number)
   const monthsBetween = () => (end.getFullYear() - start.getFullYear()) * 12 + end.getMonth() - start.getMonth();
   while (monthsBetween() < 3 && end < ye) end = new Date(end.getFullYear(), end.getMonth() + 1, 1);
   while (monthsBetween() < 3 && start > ys) start = new Date(start.getFullYear(), start.getMonth() - 1, 1);
+  return monthWindow(start, end);
+}
+
+/** A timeline window covering whole months, from `start`'s month up to (not including) `end`'s month. */
+export function monthWindow(start: Date, end: Date): Window {
+  const s = startOfMonth(start);
+  let e = startOfMonth(end);
+  if (e <= s) e = new Date(s.getFullYear(), s.getMonth() + 1, 1);
   const months: Date[] = [];
-  for (let m = new Date(start); m < end; m = new Date(m.getFullYear(), m.getMonth() + 1, 1)) months.push(m);
-  return { start, end, months };
+  for (let m = new Date(s); m < e; m = new Date(m.getFullYear(), m.getMonth() + 1, 1)) months.push(m);
+  return { start: s, end: e, months };
 }
 
 /** Fraction (0..1) positions of a project's bar inside the timeline window. */
@@ -108,5 +116,7 @@ export function windowBar(p: Project, w: Window) {
   const e = eRaw ? addDays(eRaw, 1).getTime() : w.end.getTime();
   const left = Math.max(0, (s - ws) / span);
   const right = Math.min(1, (e - ws) / span);
-  return { left, width: Math.max(0.01, right - left), openStart: s < ws, openEnd: !eRaw || e > w.end.getTime() };
+  // "before" / "after": the project lies wholly outside the months shown
+  const outside: "before" | "after" | null = e <= ws ? "before" : s >= w.end.getTime() ? "after" : null;
+  return { left, width: Math.max(0.01, right - left), openStart: s < ws, openEnd: !eRaw || e > w.end.getTime(), outside };
 }

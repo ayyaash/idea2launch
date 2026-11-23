@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { addDays, differenceInCalendarDays, eachWeekOfInterval, format, max as maxDate, min as minDate, startOfDay } from "date-fns";
-import { List, KanbanSquare, GanttChart, Users, Pencil, Trash2, Download, ArrowLeft, CalendarRange, X, Lock, ChevronRight, Clock } from "lucide-react";
+import { List, KanbanSquare, GanttChart, Users, Pencil, Trash2, Download, ArrowLeft, CalendarRange, X, Lock, ChevronRight, Clock, Copy as CopyIcon } from "lucide-react";
 import { useStore } from "../lib/store";
 import { useAuth } from "../lib/auth";
 import { supabase } from "../lib/supabase";
@@ -10,13 +10,14 @@ import {
   TASK_STATUS_LABEL, fmtDate, toDate,
 } from "../lib/format";
 import { progressOf, today } from "../lib/metrics";
-import { canAddTask, canEditProject, canManageProject, isManager } from "../lib/perms";
+import { canAddTask, canContribute, canEditProject, canManageProject, isManager } from "../lib/perms";
 import { ApprovalBanner, ApprovalPill } from "../components/Approval";
 import { ProjectTime, ProjectTimeText } from "../components/TimeReports";
 import { exportToExcel } from "../lib/excel";
 import type { Priority, ProjectStatus, Section, Task, TaskStatus } from "../lib/types";
 import { Avatar, Button, Card, EmptyState, IconButton, Pill, Select, Spinner, Tabs, cx, useConfirm } from "../components/ui";
 import { ProjectForm } from "../components/ProjectForm";
+import { CopyProjectModal } from "../components/CopyProjectModal";
 import { TaskRow, TaskTableHeader } from "../components/TaskRow";
 import { DueBadge, QuickAdd, useOpenTask, useStatusChange } from "../components/TaskPanel";
 import { PeoplePicker } from "../components/pickers";
@@ -33,6 +34,7 @@ export default function ProjectPage() {
   const view = (params.get("view") as View) || "list";
   const setView = (v: View) => { const p = new URLSearchParams(params); p.set("view", v); p.delete("task"); setParams(p, { replace: true }); };
   const [editOpen, setEditOpen] = useState(false);
+  const [copyOpen, setCopyOpen] = useState(false);
   const [ownerFilter, setOwnerFilter] = useState("");
   const [prioFilter, setPrioFilter] = useState<"" | Priority>("");
   const [hideDone, setHideDone] = useState(false);
@@ -100,6 +102,7 @@ export default function ProjectPage() {
         </div>
         <div className="flex gap-2">
           <Button icon={<Download className="size-4" />} onClick={() => exportToExcel(`${project.code}.xlsx`, [project], allTasks, store)}>Excel</Button>
+          {canContribute(me) && <Button icon={<CopyIcon className="size-4" />} onClick={() => setCopyOpen(true)}>Copy</Button>}
           {canManage && <Button icon={<Pencil className="size-4" />} onClick={() => setEditOpen(true)}>Edit</Button>}
           {isManager(me) && <IconButton label="Delete project" onClick={del} className="ring-1 ring-slate-300"><Trash2 className="size-4" /></IconButton>}
         </div>
@@ -140,6 +143,7 @@ export default function ProjectPage() {
       {view === "people" && <PeopleView projectId={project.id} canManage={canManage} />}
 
       <ProjectForm open={editOpen} onClose={() => setEditOpen(false)} project={project} />
+      <CopyProjectModal open={copyOpen} onClose={() => setCopyOpen(false)} project={project} />
     </div>
   );
 }

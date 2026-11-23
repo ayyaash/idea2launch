@@ -25,7 +25,7 @@ export default function Workload() {
   const people = useMemo(() => store.profiles.filter((p) => p.is_active && p.role !== "viewer"), [store.profiles]);
 
   const openTasks = useMemo(() => store.tasks.filter((t) => {
-    if (t.status === "done" || !t.owner_id) return false;
+    if (t.status === "done") return false;
     if (!category) return true;
     return store.projectById.get(t.project_id)?.category_id === category;
   }), [store.tasks, store.projectById, category]);
@@ -33,17 +33,23 @@ export default function Workload() {
   const grid = useMemo(() => {
     const rows = new Map<string, { weeks: Task[][]; none: Task[]; total: number; overdue: number }>();
     for (const p of people) rows.set(p.id, { weeks: weeks.map(() => []), none: [], total: 0, overdue: 0 });
+    // A task counts for its owner and for each collaborator.
+    const collabs = new Map<string, string[]>();
+    for (const c of store.collaborators) collabs.set(c.task_id, [...(collabs.get(c.task_id) ?? []), c.user_id]);
     for (const t of openTasks) {
-      const row = rows.get(t.owner_id!);
-      if (!row) continue;
-      row.total++;
-      if (isOverdue(t)) row.overdue++;
+      const who = new Set([...(t.owner_id ? [t.owner_id] : []), ...(collabs.get(t.id) ?? [])]);
       const w = taskWindow(t);
-      if (!w) { row.none.push(t); continue; }
-      weeks.forEach((wk, i) => { if (overlaps(w, wk)) row.weeks[i].push(t); });
+      for (const id of who) {
+        const row = rows.get(id);
+        if (!row) continue;
+        row.total++;
+        if (isOverdue(t)) row.overdue++;
+        if (!w) { row.none.push(t); continue; }
+        weeks.forEach((wk, i) => { if (overlaps(w, wk)) row.weeks[i].push(t); });
+      }
     }
     return rows;
-  }, [people, openTasks, weeks]);
+  }, [people, openTasks, weeks, store.collaborators]);
 
   const sorted = useMemo(() => [...people].sort((a, b) => (grid.get(b.id)?.weeks[0].length ?? 0) - (grid.get(a.id)?.weeks[0].length ?? 0) || a.full_name.localeCompare(b.full_name)), [people, grid]);
 
@@ -54,7 +60,7 @@ export default function Workload() {
 
   return (
     <div className="mx-auto max-w-[1400px]">
-      <PageHeader title="Workload" subtitle={<>Open tasks per person per week. More than <b>{threshold}</b> in a week counts as overloaded{me?.role === "admin" ? <> (change it in <Link to="/admin?tab=settings" className="text-brand-600 hover:underline">Admin panel</Link>)</> : null}.</>}
+      <PageHeader title="Workload" subtitle={<>Open tasks per person per week, as owner or collaborator. More than <b>{threshold}</b> in a week counts as overloaded{me?.role === "admin" ? <> (change it in <Link to="/admin?tab=settings" className="text-brand-600 hover:underline">Admin panel</Link>)</> : null}.</>}
         actions={<>
           <Select aria-label="Category" value={category} onChange={(e) => setCategory(e.target.value)} className="w-auto">
             <option value="">All categories</option>
@@ -140,7 +146,7 @@ export default function Workload() {
             <Button size="sm" variant="ghost" onClick={() => setSelected(null)}>Close</Button>
           </div>
           <ul className="divide-y divide-slate-100">
-            {selTasks.map((t) => <SelRow key={t.id} t={t} />)}
+            {selTasks.map((t) => <SelRow key={t.id} t={t} collab={t.owner_id !== selected.person} />)}
             {selTasks.length === 0 && <li className="px-4 py-4 text-sm text-slate-500">No open tasks.</li>}
           </ul>
         </Card>
@@ -164,7 +170,7 @@ function Legend({ className, label }: { className: string; label: string }) {
   return <span className="flex items-center gap-1.5"><span className={cx("size-3 rounded", className)} />{label}</span>;
 }
 
-function SelRow({ t }: { t: Task }) {
+function SelRow({ t, collab }: { t: Task; collab: boolean }) {
   const store = useStore();
   const p = store.projectById.get(t.project_id);
   return (
@@ -172,7 +178,7 @@ function SelRow({ t }: { t: Task }) {
       <Link to={`/projects/${t.project_id}?task=${t.id}`} className="flex items-center gap-3 px-4 py-2 hover:bg-slate-50">
         <span className="min-w-0 flex-1">
           <span className="block truncate text-sm">{t.title}</span>
-          <span className="block truncate text-xs text-slate-500">{p?.code} · {p?.name}</span>
+          <span className="block truncate text-xs text-slate-500">{p?.code} · {p?.name}{collab ? " · collaborator" : ""}</span>
         </span>
         <DueBadge task={t} />
       </Link>

@@ -360,3 +360,70 @@ test("time tracking: estimates, logs, timer and who can change them", async () =
   const left = ok(await people.admin.from("time_entries").select("id").eq("project_id", proj.id));
   assert.equal(left.length, 0);
 });
+
+test("subtask dates stay inside the main task's dates", async () => {
+  const proj = ok(await people.mia.from("projects").insert({ code: "SD-" + run, name: "Dates" }).select().single());
+  const main = ok(await people.mia.from("tasks").insert({ project_id: proj.id, title: "Main", start_date: "2026-12-01", due_date: "2026-12-20" }).select().single());
+  // inside: fine
+  const sub = ok(await people.mia.from("tasks").insert({ project_id: proj.id, parent_id: main.id, title: "Sub", start_date: "2026-12-05", due_date: "2026-12-10" }).select().single());
+  // outside: refused, on insert and update
+  const before = await people.mia.from("tasks").insert({ project_id: proj.id, parent_id: main.id, title: "Early", start_date: "2026-11-25" });
+  assert.match(before.error?.message ?? "", /within its main task/);
+  const after = await people.mia.from("tasks").update({ due_date: "2026-12-31" }).eq("id", sub.id);
+  assert.match(after.error?.message ?? "", /within its main task/);
+  // no dates on the subtask: fine
+  ok(await people.mia.from("tasks").insert({ project_id: proj.id, parent_id: main.id, title: "Undated" }));
+  // moving the main task pulls the subtask inside
+  ok(await people.mia.from("tasks").update({ start_date: "2026-12-07", due_date: "2026-12-08" }).eq("id", main.id));
+  const moved = ok(await people.mia.from("tasks").select("start_date, due_date").eq("id", sub.id).single());
+  assert.deepEqual(moved, { start_date: "2026-12-07", due_date: "2026-12-08" });
+  ids.datesProject = proj.id;
+});
+
+test("copy a project as a template", async () => {
+  const src = ok(await people.mia.from("projects").insert({ code: "TPL-" + run, name: "Template", description: "How we build", start_date: "2026-01-01", end_date: "2026-03-31" }).select().single());
+  ok(await people.mia.from("project_members").insert({ project_id: src.id, user_id: ids.nia }));
+  const a = ok(await people.mia.from("tasks").insert({ project_id: src.id, title: "Design", start_date: "2026-01-05", due_date: "2026-01-20", owner_id: ids.nia, estimate_minutes: 960 }).select().single());
+  const b = ok(await people.mia.from("tasks").insert({ project_id: src.id, title: "Build", start_date: "2026-01-21", due_date: "2026-02-28", status: "done" }).select().single());
+  ok(await people.mia.from("tasks").insert({ project_id: src.id, parent_id: a.id, title: "Sketch", start_date: "2026-01-06", due_date: "2026-01-07" }));
+  ok(await people.mia.from("task_dependencies").insert({ task_id: b.id, depends_on_id: a.id }));
+  ok(await people.mia.from("comments").insert({ task_id: a.id, body: "not copied" }));
+
+  // code must be new
+  assert.match((await people.mia.rpc("copy_project", { p_project: src.id, p_code: src.code, p_name: "x" })).error?.message ?? "", /already used/);
+  // a manager's copy is approved at once; dates shift with the new start
+  const newId = ok(await people.mia.rpc("copy_project", { p_project: src.id, p_code: "CP-" + run, p_name: "Copy", p_start: "2026-04-01" }));
+  const cp = ok(await people.mia.from("projects").select("*").eq("id", newId).single());
+  assert.equal(cp.approval, "approved");
+  assert.equal(cp.status, "planning");
+  assert.equal(cp.start_date, "2026-04-01");
+  assert.equal(cp.end_date, "2026-06-29"); // +90 days
+  assert.equal(cp.description, "How we build");
+  const tasks = ok(await people.mia.from("tasks").select("*").eq("project_id", newId));
+  assert.equal(tasks.length, 3);
+  assert.ok(tasks.every((t) => t.status === "todo"));
+  const design = tasks.find((t) => t.title === "Design");
+  assert.equal(design.start_date, "2026-04-05");
+  assert.equal(design.owner_id, ids.nia);
+  assert.equal(design.estimate_minutes, 960);
+  const sketch = tasks.find((t) => t.title === "Sketch");
+  assert.equal(sketch.parent_id, design.id);
+  const deps = ok(await people.mia.from("task_dependencies").select("*").eq("depends_on_id", design.id));
+  assert.equal(deps.length, 1);
+  assert.equal(ok(await people.mia.from("comments").select("id").eq("task_id", design.id)).length, 0);
+  const mem = ok(await people.mia.from("project_members").select("user_id").eq("project_id", newId));
+  assert.ok(mem.some((m) => m.user_id === ids.nia));
+  // nia was not sent an "assigned you" note for each copied task
+  const notes = ok(await people.nia.from("notifications").select("*").eq("task_id", design.id));
+  assert.equal(notes.length, 0);
+
+  // without people
+  const bare = ok(await people.mia.rpc("copy_project", { p_project: src.id, p_code: "CB-" + run, p_name: "Bare", p_keep_people: false }));
+  const bareTasks = ok(await people.mia.from("tasks").select("owner_id").eq("project_id", bare));
+  assert.ok(bareTasks.every((t) => t.owner_id === null));
+
+  // a member's copy waits for approval; viewers can't copy
+  const mine = ok(await people.max.rpc("copy_project", { p_project: src.id, p_code: "CM-" + run, p_name: "Mine" }));
+  assert.equal(ok(await people.max.from("projects").select("approval").eq("id", mine).single()).approval, "pending");
+  assert.ok((await people.val.rpc("copy_project", { p_project: src.id, p_code: "CV-" + run, p_name: "No" })).error);
+});
