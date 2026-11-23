@@ -134,5 +134,4 @@ export interface Settings {
   company_name: string;
   week_starts_on: 0 | 1;
   default_phases: string[];
-  hours_per_day: number;
 }

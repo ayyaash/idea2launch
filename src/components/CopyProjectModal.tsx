@@ -77,7 +77,7 @@ export function CopyProjectModal({ open, project, onClose }: { open: boolean; pr
         <input type="checkbox" checked={people} onChange={(e) => setPeople(e.target.checked)} className="mt-0.5 size-4 accent-brand-500" />
         <span>Keep the same people<span className="block text-xs text-slate-500">The team, task owners and collaborators. Untick to copy the tasks without anyone assigned.</span></span>
       </label>
-      <p className="mt-4 text-xs text-slate-500">Also copied: descriptions, priorities, estimates and task dependencies. Not copied: comments, files, time logs and progress.</p>
+      <p className="mt-4 text-xs text-slate-500">Also copied: descriptions, priorities and task dependencies. Not copied: comments, files and progress.</p>
       {err && <p className="mt-3 text-sm text-red-600">{err}</p>}
     </Modal>
   );

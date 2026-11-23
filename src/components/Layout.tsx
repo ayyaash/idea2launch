@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, FolderKanban, ListChecks, Users, Settings, LogOut, Menu, X, UserCircle, ChevronDown, Tags, Clock } from "lucide-react";
+import { LayoutDashboard, FolderKanban, ListChecks, Users, Settings, LogOut, Menu, X, UserCircle, ChevronDown, Tags } from "lucide-react";
 import { useAuth } from "../lib/auth";
 import { useStore } from "../lib/store";
 import { ROLE_LABEL } from "../lib/format";
@@ -9,7 +9,6 @@ import { Avatar, cx } from "./ui";
 import { TaskPanelHost } from "./TaskPanel";
 import { SearchBox } from "./SearchBox";
 import { InstallApp } from "./InstallApp";
-import { RunningTimer } from "./TimeTracking";
 
 export function Layout() {
   const { me, signOut } = useAuth();
@@ -33,7 +32,6 @@ export function Layout() {
     { to: "/my-tasks", label: "My tasks", icon: ListChecks },
     { to: "/projects", label: "Projects", icon: FolderKanban },
     { to: "/workload", label: "Workload", icon: Users },
-    { to: "/time", label: "Time", icon: Clock },
     ...(me?.role === "admin" ? [{ to: "/admin", label: "Admin panel", icon: Settings }]
       : me?.role === "manager" ? [{ to: "/admin", label: "Categories", icon: Tags }] : []),
   ];
@@ -72,7 +70,6 @@ export function Layout() {
           </button>
           <img src="/icon.png" alt="" className="size-7 lg:hidden" />
           <div className="flex-1"><SearchBox /></div>
-          <RunningTimer />
           <NotificationsBell />
           <div className="relative" ref={menuRef}>
             <button onClick={() => setMenu((m) => !m)} className="flex items-center gap-2 rounded-lg py-1 pr-1 pl-1 hover:bg-slate-100" aria-label="Account menu">

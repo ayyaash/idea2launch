@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { addDays, differenceInCalendarDays, eachWeekOfInterval, format, max as maxDate, min as minDate, startOfDay } from "date-fns";
-import { List, KanbanSquare, GanttChart, Users, Pencil, Trash2, Download, ArrowLeft, CalendarRange, X, Lock, ChevronRight, Clock, Copy as CopyIcon, GripVertical } from "lucide-react";
+import { List, KanbanSquare, GanttChart, Users, Pencil, Trash2, Download, ArrowLeft, CalendarRange, X, Lock, ChevronRight, Copy as CopyIcon, GripVertical } from "lucide-react";
 import { useStore } from "../lib/store";
 import { useAuth } from "../lib/auth";
 import { supabase } from "../lib/supabase";
@@ -12,7 +12,6 @@ import {
 import { progressOf, today } from "../lib/metrics";
 import { canAddTask, canContribute, canEditProject, canManageProject, isManager } from "../lib/perms";
 import { ApprovalBanner, ApprovalPill } from "../components/Approval";
-import { ProjectTime, ProjectTimeText } from "../components/TimeReports";
 import { exportToExcel } from "../lib/excel";
 import type { Priority, ProjectStatus, Section, Task, TaskStatus } from "../lib/types";
 import { Avatar, Button, Card, EmptyState, IconButton, Pill, Select, Spinner, Tabs, cx, useConfirm } from "../components/ui";
@@ -22,7 +21,7 @@ import { TaskRow, TaskTableHeader } from "../components/TaskRow";
 import { DueBadge, QuickAdd, useOpenTask, useStatusChange } from "../components/TaskPanel";
 import { PeoplePicker } from "../components/pickers";
 
-type View = "list" | "board" | "timeline" | "time" | "people";
+type View = "list" | "board" | "timeline" | "people";
 
 export default function ProjectPage() {
   const { id = "" } = useParams();
@@ -96,7 +95,6 @@ export default function ProjectPage() {
               <span className="h-1.5 w-24 overflow-hidden rounded-full bg-slate-100"><span className="block h-full bg-emerald-500" style={{ width: `${prog.pct}%` }} /></span>
               {prog.done}/{prog.total} done
             </span>
-            <span className="flex items-center gap-1.5"><Clock className="size-4 text-slate-400" /><ProjectTimeText projectId={project.id} empty /></span>
           </div>
           {project.description && <p className="mt-3 max-w-3xl text-sm whitespace-pre-wrap text-slate-600">{project.description}</p>}
         </div>
@@ -114,11 +112,10 @@ export default function ProjectPage() {
         { id: "list", label: "List", icon: <List className="size-4" /> },
         { id: "board", label: "Board", icon: <KanbanSquare className="size-4" /> },
         { id: "timeline", label: "Timeline", icon: <GanttChart className="size-4" /> },
-        { id: "time", label: "Time", icon: <Clock className="size-4" /> },
         { id: "people", label: `People (${members.size})`, icon: <Users className="size-4" /> },
       ]} />
 
-      {view !== "people" && view !== "time" && (
+      {view !== "people" && (
         <div className="my-3 flex flex-wrap items-center gap-2">
           <Select aria-label="Filter by owner" value={ownerFilter} onChange={(e) => setOwnerFilter(e.target.value)} className="h-8 w-auto py-1 text-[13px]">
             <option value="">Everyone</option>
@@ -139,7 +136,6 @@ export default function ProjectPage() {
       {view === "list" && <ListView projectId={project.id} tasks={filtered} canEdit={canEdit} canAdd={canAdd} />}
       {view === "board" && <BoardView projectId={project.id} tasks={filtered} canEdit={canEdit} canAdd={canAdd} />}
       {view === "timeline" && <TimelineView tasks={filtered} />}
-      {view === "time" && <ProjectTime project={project} />}
       {view === "people" && <PeopleView projectId={project.id} canManage={canManage} />}
 
       <ProjectForm open={editOpen} onClose={() => setEditOpen(false)} project={project} />
