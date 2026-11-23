@@ -1,41 +1,22 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { addDays } from "date-fns";
 import { ChevronLeft, ChevronRight, FolderKanban, AlertTriangle, CalendarClock, CheckCircle2, Download, Plus, Filter } from "lucide-react";
 import { useStore } from "../lib/store";
 import { useAuth } from "../lib/auth";
 import { PROJECT_STATUSES, PROJECT_STATUS_BAR, PROJECT_STATUS_LABEL, PROJECT_STATUS_STYLE, fmtShort, isoDay } from "../lib/format";
-import { inYear, isOverdue, isoToday, monthRange, progressOf, today, weekRange, timelineWindow, monthWindow, windowBar, type Window } from "../lib/metrics";
+import { inYear, isOverdue, isoToday, monthRange, progressOf, today, weekRange, timelineWindow, scrollWindow, windowBar, type Window } from "../lib/metrics";
 import { canCreateProject } from "../lib/perms";
 import { PendingApprovals } from "../components/Approval";
 import { exportToExcel } from "../lib/excel";
 import type { Project, ProjectStatus, Task } from "../lib/types";
-import { Avatar, Button, Card, EmptyState, Input, PageHeader, Pill, Select, Spinner, cx } from "../components/ui";
+import { Avatar, Button, Card, EmptyState, PageHeader, Pill, Select, Spinner, cx } from "../components/ui";
 import { ProjectForm } from "../components/ProjectForm";
 import { DueBadge } from "../components/TaskPanel";
 
-type Range = "fit" | "year" | "h1" | "h2" | "q1" | "q2" | "q3" | "q4" | "custom";
-const RANGE_MONTHS: Record<Exclude<Range, "fit" | "custom">, [number, number]> = {
-  year: [0, 12], h1: [0, 6], h2: [6, 12], q1: [0, 3], q2: [3, 6], q3: [6, 9], q4: [9, 12],
-};
-const ym = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-const fromYm = (v: string) => { const [y, m] = v.split("-").map(Number); return y && m ? new Date(y, m - 1, 1) : null; };
-
-/** The months the timeline shows for the chosen range. */
-function rangeWindow(range: Range, year: number, fit: Window, from: string, to: string): Window {
-  if (range === "fit") return fit;
-  if (range === "custom") {
-    const f = fromYm(from), t = fromYm(to);
-    if (!f || !t) return fit;
-    const [a, b] = f <= t ? [f, t] : [t, f];
-    // at most 3 years, to keep the columns readable
-    const end = new Date(b.getFullYear(), b.getMonth() + 1, 1);
-    const cap = new Date(a.getFullYear() + 3, a.getMonth(), 1);
-    return monthWindow(a, end < cap ? end : cap);
-  }
-  const [m1, m2] = RANGE_MONTHS[range];
-  return monthWindow(new Date(year, m1, 1), new Date(year, m2, 1));
-}
+/** How many months fit in the visible part of the timeline (the rest scrolls). */
+type Span = 3 | 6 | 12;
+const PROJECT_COL = typeof window !== "undefined" && window.innerWidth < 640 ? 150 : 200;
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
@@ -49,11 +30,10 @@ export default function Dashboard() {
   const [lead, setLead] = useState("");
   const [newOpen, setNewOpen] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
-  // Timeline range: fit to the projects (default), a fixed part of the year, or custom months.
-  const [range, setRange] = useState<Range>("fit");
-  const [from, setFrom] = useState("");
-  const [to, setTo] = useState("");
-  const changeYear = (y: number) => { setYear(y); if (range === "custom") setRange("fit"); };
+  const [span, setSpan] = useState<Span>(() => { try { return (Number(localStorage.getItem("i2l.timelineSpan")) || 6) as Span; } catch { return 6; } });
+  const scroller = useRef<HTMLDivElement>(null);
+  const headerRef = useRef<HTMLDivElement>(null);
+  const changeYear = (y: number) => setYear(y);
 
   const yearProjects = useMemo(() => store.projects
     .filter((p) => p.approval !== "pending" && p.approval !== "rejected")
@@ -94,11 +74,38 @@ export default function Dashboard() {
     }));
   }, [yearProjects, store.categories, store.categoryById]);
 
+  const fit = timelineWindow(yearProjects, store.tasks, year);
+  const win = scrollWindow(yearProjects, store.tasks, year);
+  const monthPx = () => { const el = scroller.current; return el ? (el.clientWidth - PROJECT_COL) / span : 0; };
+  const scrollToMonth = (d: Date, smooth = true) => {
+    const el = scroller.current; if (!el) return;
+    const i = (d.getFullYear() - win.start.getFullYear()) * 12 + d.getMonth() - win.start.getMonth();
+    el.scrollTo({ left: Math.max(0, i * monthPx()), behavior: smooth ? "smooth" : "auto" });
+  };
+  const scrollBy = (months: number) => scroller.current?.scrollBy({ left: months * monthPx(), behavior: "smooth" });
+  // Start where the year's projects are (or this month, in the current year).
+  const firstKey = `${year}|${span}|${win.start.getTime()}|${fit.start.getTime()}`;
+  useEffect(() => {
+    const now0 = new Date();
+    const target = year === now0.getFullYear() && now0 >= fit.start ? new Date(now0.getFullYear(), now0.getMonth() - 1, 1) : fit.start;
+    requestAnimationFrame(() => scrollToMonth(target < fit.start ? fit.start : target, false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- re-place only when the year, zoom or span changes
+  }, [firstKey, yearProjects.length > 0]);
+  // A mouse wheel over the month header scrolls through time.
+  useEffect(() => {
+    const h = headerRef.current, el = scroller.current;
+    if (!h || !el) return;
+    const onWheel = (e: WheelEvent) => {
+      if (Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return;
+      e.preventDefault();
+      el.scrollLeft += e.deltaY;
+    };
+    h.addEventListener("wheel", onWheel, { passive: false });
+    return () => h.removeEventListener("wheel", onWheel);
+  });
   if (!store.ready) return <Spinner />;
 
   const now = new Date();
-  const fit = timelineWindow(yearProjects, store.tasks, year);
-  const win = rangeWindow(range, year, fit, from, to);
   const todayPos = now >= win.start && now < win.end ? (now.getTime() - win.start.getTime()) / (win.end.getTime() - win.start.getTime()) : null;
   const statusCounts = PROJECT_STATUSES.map((s) => ({ s, n: yearProjects.filter((p) => p.status === s).length }));
   const leads = store.profiles.filter((p) => store.projects.some((x) => x.lead_id === p.id));
@@ -157,35 +164,23 @@ export default function Dashboard() {
         <Kpi icon={<CheckCircle2 className="size-5" />} tone="green" label="Done this month" value={kpis.doneMonth.length} />
       </div>
 
-      <div className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
+      <div className="mt-5 grid grid-cols-[minmax(0,1fr)] gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
         {/* Year timeline */}
         <Card className="min-w-0 overflow-hidden">
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 px-4 py-3">
             <h2 className="font-semibold">Projects in {year} <span className="ml-1 text-sm font-normal text-slate-500">({yearProjects.length})</span></h2>
             <div className="flex flex-wrap items-center gap-2">
-              <Select aria-label="Timeline range" value={range} className="h-8 w-auto py-1 text-[13px]"
-                onChange={(e) => {
-                  const r = e.target.value as Range;
-                  if (r === "custom" && !from) { setFrom(ym(fit.start)); setTo(ym(new Date(fit.end.getFullYear(), fit.end.getMonth() - 1, 1))); }
-                  setRange(r);
-                }}>
-                <option value="fit">Fit to projects</option>
-                <option value="year">Whole year</option>
-                <option value="h1">Jan – Jun</option>
-                <option value="h2">Jul – Dec</option>
-                <option value="q1">Q1 (Jan – Mar)</option>
-                <option value="q2">Q2 (Apr – Jun)</option>
-                <option value="q3">Q3 (Jul – Sep)</option>
-                <option value="q4">Q4 (Oct – Dec)</option>
-                <option value="custom">Choose months…</option>
+              <Select aria-label="Months shown" value={span} className="h-8 w-auto py-1 text-[13px]"
+                onChange={(e) => { const v = Number(e.target.value) as Span; setSpan(v); try { localStorage.setItem("i2l.timelineSpan", String(v)); } catch { /* ignore */ } }}>
+                <option value={3}>3 months</option>
+                <option value={6}>6 months</option>
+                <option value={12}>12 months</option>
               </Select>
-              {range === "custom" && (
-                <span className="flex items-center gap-1 text-[13px] text-slate-600">
-                  <Input type="month" aria-label="From month" value={from} onChange={(e) => setFrom(e.target.value)} className="h-8 w-36 py-1 text-[13px]" />
-                  to
-                  <Input type="month" aria-label="To month" value={to} min={from || undefined} onChange={(e) => setTo(e.target.value)} className="h-8 w-36 py-1 text-[13px]" />
-                </span>
-              )}
+              <div className="flex items-center rounded-lg bg-white ring-1 ring-slate-300">
+                <button aria-label="Earlier months" className="p-1.5 text-slate-500 hover:text-slate-900" onClick={() => scrollBy(-Math.max(1, span / 2))}><ChevronLeft className="size-4" /></button>
+                <button className="px-1.5 text-[13px] font-medium" onClick={() => scrollToMonth(new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1))}>Today</button>
+                <button aria-label="Later months" className="p-1.5 text-slate-500 hover:text-slate-900" onClick={() => scrollBy(Math.max(1, span / 2))}><ChevronRight className="size-4" /></button>
+              </div>
             </div>
           </div>
           <div className="hidden justify-end gap-3 border-b border-slate-100 px-4 py-1.5 text-xs text-slate-500 md:flex">
@@ -200,22 +195,22 @@ export default function Dashboard() {
                 action={canCreateProject(me) && <Button variant="primary" icon={<Plus className="size-4" />} onClick={() => setNewOpen(true)}>New project</Button>} />
             </div>
           ) : (
-            <div className="overflow-x-auto scroll-thin">
-              <div className="min-w-[640px] sm:min-w-[720px]">
-                <div className="grid grid-cols-[170px_1fr] sm:grid-cols-[220px_1fr] border-b border-slate-200 bg-slate-50 text-xs font-medium text-slate-500">
-                  <div className="px-4 py-2">Project</div>
+            <div ref={scroller} className="overflow-x-auto scroll-thin" style={{ scrollPaddingLeft: PROJECT_COL }}>
+              <div style={{ width: `calc(${PROJECT_COL}px + (100% - ${PROJECT_COL}px) * ${win.months.length / span})`, minWidth: PROJECT_COL + win.months.length * 48 }}>
+                <div ref={headerRef} className="sticky top-0 grid border-b border-slate-200 bg-slate-50 text-xs font-medium text-slate-500" style={{ gridTemplateColumns: `${PROJECT_COL}px 1fr` }}>
+                  <div className="sticky left-0 z-20 bg-slate-50 px-4 py-2">Project</div>
                   <div className="relative grid" style={{ gridTemplateColumns: `repeat(${win.months.length}, minmax(0, 1fr))` }}>
                     {win.months.map((m) => (
-                      <div key={m.toISOString()} className={cx("border-l border-slate-200 py-2 text-center",
+                      <div key={m.toISOString()} className={cx("truncate border-l py-2 text-center whitespace-nowrap", m.getMonth() === 0 ? "border-slate-400" : "border-slate-200",
                         m.getFullYear() === now.getFullYear() && m.getMonth() === now.getMonth() && "font-semibold text-brand-600")}>
-                        {MONTHS[m.getMonth()]}{(m.getMonth() === 0 || m === win.months[0]) && m.getFullYear() !== year ? ` ${String(m.getFullYear()).slice(2)}` : ""}
+                        {MONTHS[m.getMonth()]}{m.getMonth() === 0 || m === win.months[0] ? ` '${String(m.getFullYear()).slice(2)}` : ""}
                       </div>
                     ))}
                   </div>
                 </div>
                 {groups.map((g) => (
                   <div key={g.id}>
-                    <div className="flex items-center gap-2 bg-slate-50/60 px-4 py-1.5 text-xs font-semibold text-slate-600">
+                    <div className="sticky left-0 flex w-fit items-center gap-2 px-4 py-1.5 text-xs font-semibold text-slate-600">
                       <span className="size-2.5 rounded-full" style={{ background: g.color }} />{g.name}
                       <span className="font-normal text-slate-400">{g.projects.length}</span>
                     </div>
@@ -298,8 +293,8 @@ function TimelineRow({ p, win, todayPos, tasks, onOpen }: { p: Project; win: Win
   const lead = p.lead_id ? store.profileById.get(p.lead_id) : undefined;
   const color = PROJECT_STATUS_BAR[p.status];
   return (
-    <div className="group grid grid-cols-[170px_1fr] sm:grid-cols-[220px_1fr] border-b border-slate-100 hover:bg-slate-50">
-      <button onClick={onOpen} className="flex min-w-0 items-center gap-2.5 px-4 py-2 text-left">
+    <div className="group grid border-b border-slate-100 hover:bg-slate-50" style={{ gridTemplateColumns: `${PROJECT_COL}px 1fr` }}>
+      <button onClick={onOpen} className="sticky left-0 z-10 flex min-w-0 items-center gap-2.5 bg-white px-4 py-2 text-left group-hover:bg-slate-50">
         <span className="hidden sm:block"><Avatar person={lead} size={26} /></span>
         <span className="min-w-0">
           <span className="block truncate text-sm font-medium text-slate-800 group-hover:text-brand-600">{p.name}</span>
@@ -309,7 +304,7 @@ function TimelineRow({ p, win, todayPos, tasks, onOpen }: { p: Project; win: Win
         </span>
       </button>
       <div className="relative">
-        <div className="absolute inset-0 grid" style={{ gridTemplateColumns: `repeat(${win.months.length}, minmax(0, 1fr))` }}>{win.months.map((m) => <div key={m.toISOString()} className="border-l border-slate-100" />)}</div>
+        <div className="absolute inset-0 grid" style={{ gridTemplateColumns: `repeat(${win.months.length}, minmax(0, 1fr))` }}>{win.months.map((m) => <div key={m.toISOString()} className={cx("border-l", m.getMonth() === 0 ? "border-slate-300" : "border-slate-100")} />)}</div>
         {todayPos !== null && <div className="absolute inset-y-0 w-px bg-brand-500/70" style={{ left: `${todayPos * 100}%` }} aria-hidden />}
         {bar.outside ? (
           <button onClick={onOpen} className={cx("absolute inset-y-0 flex items-center px-2 text-[11px] text-slate-400 hover:text-brand-600", bar.outside === "before" ? "left-0" : "right-0")}>
