@@ -77,18 +77,18 @@ export function PendingApprovals() {
   if (!list.length) return null;
   return (
     <Card className="mb-4 p-4">
-      <h2 className="mb-3 flex items-center gap-2 font-semibold text-slate-900">
+      <h2 className="mb-3 flex items-center gap-2 font-semibold text-ink">
         <Clock className="size-4 text-amber-600" />
         {approver ? `Projects waiting for your approval (${list.length})` : "Your projects waiting for approval"}
       </h2>
-      <ul className="divide-y divide-slate-100">
+      <ul className="divide-y divide-line-soft">
         {list.map((p) => {
           const by = p.created_by ? store.profileById.get(p.created_by) : undefined;
           return (
             <li key={p.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
               <Link to={`/projects/${p.id}`} className="min-w-0 hover:underline">
                 <span className="mr-2 font-mono text-xs text-slate-500">{p.code}</span>
-                <span className="font-medium text-slate-900">{p.name}</span>
+                <span className="font-medium text-ink">{p.name}</span>
                 {approver && <span className="ml-2 text-xs text-slate-500">added by {by?.full_name ?? "someone"}</span>}
               </Link>
               {approver ? <ReviewButtons project={p} /> : <ApprovalPill project={p} />}

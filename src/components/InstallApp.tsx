@@ -49,8 +49,8 @@ export function InstallApp({ className, dark }: { className?: string; dark?: boo
   return (
     <>
       <button onClick={install}
-        className={cx("flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium",
-          dark ? "text-navy-200 hover:bg-white/5 hover:text-white" : "text-brand-700 hover:bg-brand-50", className)}>
+        className={cx("flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium",
+          dark ? "text-navy-200 hover:bg-white/5 hover:text-white" : "text-slate-500 hover:bg-slate-100 hover:text-ink", className)}>
         <Download className="size-[18px]" /> Install app
       </button>
       <Modal open={help} onClose={() => setHelp(false)} title="Install Idea2Launch"

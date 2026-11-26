@@ -139,10 +139,10 @@ export default function Dashboard() {
         title="Dashboard"
         subtitle={`Hello ${me?.full_name.split(" ")[0] ?? ""}. Here's every R&D project running in ${year}.`}
         actions={<>
-          <div className="flex items-center rounded-lg bg-white ring-1 ring-slate-300">
-            <button aria-label="Previous year" className="p-2 text-slate-500 hover:text-slate-900" onClick={() => changeYear(year - 1)}><ChevronLeft className="size-4" /></button>
+          <div className="flex h-9 items-center rounded-lg bg-white shadow-card ring-1 ring-line">
+            <button aria-label="Previous year" className="p-2 text-slate-500 hover:text-ink" onClick={() => changeYear(year - 1)}><ChevronLeft className="size-4" /></button>
             <span className="min-w-12 text-center text-sm font-semibold" aria-live="polite">{year}</span>
-            <button aria-label="Next year" className="p-2 text-slate-500 hover:text-slate-900" onClick={() => changeYear(year + 1)}><ChevronRight className="size-4" /></button>
+            <button aria-label="Next year" className="p-2 text-slate-500 hover:text-ink" onClick={() => changeYear(year + 1)}><ChevronRight className="size-4" /></button>
           </div>
           <Button icon={<Filter className="size-4" />} onClick={() => setShowFilters((s) => !s)} className={cx((category || status || lead) && "ring-brand-400 text-brand-700")}>Filters</Button>
           <Button icon={<Download className="size-4" />} onClick={exportYear}>Excel</Button>
@@ -172,18 +172,18 @@ export default function Dashboard() {
       )}
 
       {/* KPIs */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Kpi icon={<FolderKanban className="size-5" />} tone="navy" label="Active projects" value={kpis.active} onClick={() => setStatus(status === "active" ? "" : "active")} />
-        <Kpi icon={<AlertTriangle className="size-5" />} tone="red" label="Overdue tasks" value={kpis.overdue.length} onClick={() => setListMode("overdue")} active={listMode === "overdue"} />
-        <Kpi icon={<CalendarClock className="size-5" />} tone="amber" label="Due this week" value={kpis.dueWeek.length} onClick={() => setListMode("week")} active={listMode === "week"} />
-        <Kpi icon={<CheckCircle2 className="size-5" />} tone="green" label="Done this month" value={kpis.doneMonth.length} />
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
+        <Kpi icon={<FolderKanban className="size-4" />} tone="green" label="Active projects" value={kpis.active} onClick={() => setStatus(status === "active" ? "" : "active")} />
+        <Kpi icon={<AlertTriangle className="size-4" />} tone="red" label="Overdue tasks" value={kpis.overdue.length} onClick={() => setListMode("overdue")} active={listMode === "overdue"} />
+        <Kpi icon={<CalendarClock className="size-4" />} tone="amber" label="Due this week" value={kpis.dueWeek.length} onClick={() => setListMode("week")} active={listMode === "week"} />
+        <Kpi icon={<CheckCircle2 className="size-4" />} tone="indigo" label="Done this month" value={kpis.doneMonth.length} />
       </div>
 
       <div className="mt-5 grid grid-cols-[minmax(0,1fr)] gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
         {/* Year timeline */}
         <Card className="min-w-0 overflow-hidden">
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 px-4 py-3">
-            <h2 className="font-semibold">Projects in {year} <span className="ml-1 text-sm font-normal text-slate-500">({yearProjects.length})</span></h2>
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line-soft px-4 py-3">
+            <h2 className="flex items-center gap-2 text-[15px] font-bold">Projects in {year} <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-500">{yearProjects.length}</span></h2>
             <div className="flex flex-wrap items-center gap-2">
               <Select aria-label="Months shown" value={span} className="h-8 w-auto py-1 text-[13px]"
                 onChange={(e) => { const v = Number(e.target.value) as Span; setSpan(v); try { localStorage.setItem("i2l.timelineSpan", String(v)); } catch { /* ignore */ } }}>
@@ -191,14 +191,14 @@ export default function Dashboard() {
                 <option value={6}>6 months</option>
                 <option value={12}>12 months</option>
               </Select>
-              <div className="flex items-center rounded-lg bg-white ring-1 ring-slate-300">
-                <button aria-label="Earlier months" className="p-1.5 text-slate-500 hover:text-slate-900" onClick={() => scrollBy(-Math.max(1, span / 2))}><ChevronLeft className="size-4" /></button>
-                <button className="px-1.5 text-[13px] font-medium" onClick={() => scrollToMonth(new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1))}>Today</button>
-                <button aria-label="Later months" className="p-1.5 text-slate-500 hover:text-slate-900" onClick={() => scrollBy(Math.max(1, span / 2))}><ChevronRight className="size-4" /></button>
+              <div className="flex h-8 items-center rounded-lg bg-white shadow-card ring-1 ring-line">
+                <button aria-label="Earlier months" className="p-1.5 text-slate-500 hover:text-ink" onClick={() => scrollBy(-Math.max(1, span / 2))}><ChevronLeft className="size-4" /></button>
+                <button className="px-1.5 text-[12.5px] font-semibold" onClick={() => scrollToMonth(new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1))}>Today</button>
+                <button aria-label="Later months" className="p-1.5 text-slate-500 hover:text-ink" onClick={() => scrollBy(Math.max(1, span / 2))}><ChevronRight className="size-4" /></button>
               </div>
             </div>
           </div>
-          <div className="hidden justify-end gap-3 border-b border-slate-100 px-4 py-1.5 text-xs text-slate-500 md:flex">
+          <div className="hidden justify-end gap-3 border-b border-line-soft px-4 py-1.5 text-xs text-slate-500 md:flex">
               {PROJECT_STATUSES.map((s) => (
                 <span key={s} className="flex items-center gap-1"><span className="size-2.5 rounded-sm" style={{ background: PROJECT_STATUS_BAR[s] }} />{PROJECT_STATUS_LABEL[s]}</span>
               ))}
@@ -212,12 +212,12 @@ export default function Dashboard() {
           ) : (
             <div ref={scroller} onScroll={onTimelineScroll} className="overflow-x-auto scroll-thin" style={{ scrollPaddingLeft: PROJECT_COL }}>
               <div style={{ width: `calc(${PROJECT_COL}px + (100% - ${PROJECT_COL}px) * ${win.months.length / span})`, minWidth: PROJECT_COL + win.months.length * 48 }}>
-                <div ref={headerRef} className="sticky top-0 grid border-b border-slate-200 bg-slate-50 text-xs font-medium text-slate-500" style={{ gridTemplateColumns: `${PROJECT_COL}px 1fr` }}>
-                  <div className="sticky left-0 z-20 bg-slate-50 px-4 py-2">Project</div>
+                <div ref={headerRef} className="sticky top-0 grid border-b border-line-soft bg-slate-50/80 text-xs font-semibold text-slate-500" style={{ gridTemplateColumns: `${PROJECT_COL}px 1fr` }}>
+                  <div className="sticky left-0 z-20 bg-slate-50 px-4 py-2.5">Project</div>
                   <div className="relative grid" style={{ gridTemplateColumns: `repeat(${win.months.length}, minmax(0, 1fr))` }}>
                     {win.months.map((m) => (
-                      <div key={m.toISOString()} className={cx("truncate border-l py-2 text-center whitespace-nowrap", m.getMonth() === 0 ? "border-slate-400" : "border-slate-200",
-                        m.getFullYear() === now.getFullYear() && m.getMonth() === now.getMonth() && "font-semibold text-brand-600")}>
+                      <div key={m.toISOString()} className={cx("truncate border-l py-2.5 text-center whitespace-nowrap", m.getMonth() === 0 ? "border-slate-400" : "border-line",
+                        m.getFullYear() === now.getFullYear() && m.getMonth() === now.getMonth() && "font-bold text-cta")}>
                         {MONTHS[m.getMonth()]}{m.getMonth() === 0 || m === win.months[0] ? ` '${String(m.getFullYear()).slice(2)}` : ""}
                       </div>
                     ))}
@@ -225,13 +225,15 @@ export default function Dashboard() {
                 </div>
                 {groups.map((g) => (
                   <div key={g.id}>
+                    <div className="border-b border-line-soft bg-slate-50/70">
                     <button onClick={() => toggleFold(g.id)} aria-expanded={!folded.has(g.id)}
                       title={folded.has(g.id) ? "Show these projects" : "Hide these projects"}
-                      className="sticky left-0 flex w-fit items-center gap-2 rounded-md px-4 py-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900">
+                      className="sticky left-0 flex w-fit items-center gap-2 rounded-md px-4 py-2 text-[12.5px] font-bold text-slate-700 hover:text-ink">
                       <ChevronDown className={cx("size-4 text-slate-400 transition-transform", folded.has(g.id) && "-rotate-90")} />
-                      <span className="size-2.5 rounded-full" style={{ background: g.color }} />{g.name}
-                      <span className="font-normal text-slate-400">{g.projects.length}</span>
+                      <span className="size-2.5 rounded-[3px]" style={{ background: g.color }} />{g.name}
+                      <span className="font-semibold text-slate-400">{g.projects.length}</span>
                     </button>
+                    </div>
                     {!folded.has(g.id) && g.projects.map((p) => <TimelineRow key={p.id} p={p} win={win} todayPos={todayPos} tasks={store.tasks} onOpen={() => nav(`/projects/${p.id}`)} />)}
                   </div>
                 ))}
@@ -243,11 +245,11 @@ export default function Dashboard() {
         {/* right column */}
         <div className="space-y-5">
           <Card>
-            <div className="flex items-center gap-1 border-b border-slate-200 px-2 pt-2">
+            <div className="flex items-center gap-1 border-b border-line-soft p-1.5">
               {(["overdue", "week"] as const).map((m) => (
-                <button key={m} onClick={() => setListMode(m)}
-                  className={cx("-mb-px border-b-2 px-3 py-2 text-sm font-medium", listMode === m ? "border-brand-500 text-slate-900" : "border-transparent text-slate-500")}>
-                  {m === "overdue" ? `Overdue (${kpis.overdue.length})` : `Due this week (${kpis.dueWeek.length})`}
+                <button key={m} onClick={() => setListMode(m)} aria-pressed={listMode === m}
+                  className={cx("flex-1 rounded-lg px-3 py-1.5 text-[13px] font-semibold", listMode === m ? "bg-navy-50 text-navy-900" : "text-slate-500 hover:bg-slate-50 hover:text-ink")}>
+                  {m === "overdue" ? `Overdue · ${kpis.overdue.length}` : `Due this week · ${kpis.dueWeek.length}`}
                 </button>
               ))}
             </div>
@@ -255,8 +257,8 @@ export default function Dashboard() {
           </Card>
 
           <Card className="p-4">
-            <h3 className="mb-3 text-sm font-semibold">Projects by status</h3>
-            <div className="mb-3 flex h-2.5 overflow-hidden rounded-full bg-slate-100">
+            <h3 className="mb-3 text-[14.5px] font-bold">Projects by status</h3>
+            <div className="mb-3 flex h-2 gap-0.5 overflow-hidden rounded-full bg-slate-100">
               {statusCounts.filter((x) => x.n).map(({ s, n }) => (
                 <div key={s} style={{ width: `${(n / Math.max(1, yearProjects.length)) * 100}%`, background: PROJECT_STATUS_BAR[s] }} title={`${PROJECT_STATUS_LABEL[s]}: ${n}`} />
               ))}
@@ -264,7 +266,7 @@ export default function Dashboard() {
             <ul className="space-y-1.5">
               {statusCounts.map(({ s, n }) => (
                 <li key={s}>
-                  <button onClick={() => setStatus(status === s ? "" : s)} className="flex w-full items-center justify-between text-sm hover:text-brand-600">
+                  <button onClick={() => setStatus(status === s ? "" : s)} className="flex w-full items-center justify-between rounded-md px-1 py-0.5 text-[13px] text-slate-700 hover:bg-slate-50 hover:text-ink">
                     <span className="flex items-center gap-2"><span className="size-2.5 rounded-sm" style={{ background: PROJECT_STATUS_BAR[s] }} />{PROJECT_STATUS_LABEL[s]}</span>
                     <span className="font-medium tabular-nums">{n}</span>
                   </button>
@@ -274,7 +276,7 @@ export default function Dashboard() {
           </Card>
 
           <Card>
-            <h3 className="border-b border-slate-200 px-4 py-3 text-sm font-semibold">Coming up (next 14 days)</h3>
+            <h3 className="flex items-baseline gap-2 border-b border-line-soft px-4 py-3 text-[14.5px] font-bold">Coming up <span className="text-xs font-medium text-slate-500">next 14 days</span></h3>
             <MiniTaskList tasks={upcoming} empty="No deadlines in the next two weeks." />
           </Card>
         </div>
@@ -285,21 +287,23 @@ export default function Dashboard() {
   );
 }
 
-function Kpi({ icon, label, value, tone, onClick, active }: { icon: React.ReactNode; label: string; value: number; tone: "navy" | "red" | "amber" | "green"; onClick?: () => void; active?: boolean }) {
+function Kpi({ icon, label, value, tone, onClick, active }: { icon: React.ReactNode; label: string; value: number; tone: "indigo" | "red" | "amber" | "green"; onClick?: () => void; active?: boolean }) {
   const tones = {
-    navy: "bg-navy-50 text-navy-700",
+    indigo: "bg-indigo-50 text-indigo-600",
     red: "bg-red-50 text-red-600",
     amber: "bg-amber-50 text-amber-700",
-    green: "bg-emerald-50 text-emerald-700",
+    green: "bg-emerald-50 text-emerald-600",
   };
+  const alert = tone === "red" && value > 0;
   return (
     <button onClick={onClick} disabled={!onClick}
-      className={cx("flex items-center gap-3 rounded-xl bg-white p-4 text-left ring-1 ring-slate-200 transition enabled:hover:ring-slate-300", active && "ring-2 ring-brand-400 enabled:hover:ring-brand-400")}>
-      <span className={cx("flex size-10 items-center justify-center rounded-lg", tones[tone])}>{icon}</span>
-      <span>
-        <span className="block text-2xl leading-tight font-semibold tabular-nums">{value}</span>
-        <span className="block text-xs text-slate-500 sm:text-sm">{label}</span>
+      className={cx("flex flex-col gap-2 rounded-2xl p-3.5 text-left shadow-card ring-1 transition sm:p-4",
+        alert ? "bg-gradient-to-b from-white to-red-50/60 ring-red-200 enabled:hover:ring-red-300" : "bg-white ring-line enabled:hover:ring-slate-300",
+        active && "ring-2 ring-navy-400 enabled:hover:ring-navy-400")}>
+      <span className="flex items-center gap-2 text-[12.5px] font-medium text-slate-500 sm:text-[13px]">
+        <span className={cx("flex size-6 items-center justify-center rounded-md", tones[tone])}>{icon}</span>{label}
       </span>
+      <span className={cx("text-[26px] leading-none font-bold tracking-tight tabular-nums sm:text-[28px]", alert && "text-red-600")}>{value}</span>
     </button>
   );
 }
@@ -311,29 +315,29 @@ function TimelineRow({ p, win, todayPos, tasks, onOpen }: { p: Project; win: Win
   const lead = p.lead_id ? store.profileById.get(p.lead_id) : undefined;
   const color = PROJECT_STATUS_BAR[p.status];
   return (
-    <div className="group grid border-b border-slate-100 hover:bg-slate-50" style={{ gridTemplateColumns: `${PROJECT_COL}px 1fr` }}>
-      <button onClick={onOpen} className="sticky left-0 z-10 flex min-w-0 items-center gap-2.5 bg-white px-4 py-2 text-left group-hover:bg-slate-50">
+    <div className="group grid border-b border-line-soft hover:bg-slate-50/70" style={{ gridTemplateColumns: `${PROJECT_COL}px 1fr` }}>
+      <button onClick={onOpen} className="sticky left-0 z-10 flex min-w-0 items-center gap-2.5 bg-white px-4 py-2.5 text-left group-hover:bg-slate-50">
         <span className="hidden sm:block"><Avatar person={lead} size={26} /></span>
         <span className="min-w-0">
-          <span className="block truncate text-sm font-medium text-slate-800 group-hover:text-brand-600">{p.name}</span>
+          <span className="block truncate text-[13.5px] font-semibold text-ink group-hover:text-navy-700">{p.name}</span>
           <span className="flex items-center gap-1.5 text-xs text-slate-500">
-            <span className="font-mono">{p.code}</span>·<span>{prog.pct}%</span>
+            <span className="font-mono text-[11px]">{p.code}</span>·<span>{prog.pct}%</span>
           </span>
         </span>
       </button>
       <div className="relative">
-        <div className="absolute inset-0 grid" style={{ gridTemplateColumns: `repeat(${win.months.length}, minmax(0, 1fr))` }}>{win.months.map((m) => <div key={m.toISOString()} className={cx("border-l", m.getMonth() === 0 ? "border-slate-300" : "border-slate-100")} />)}</div>
-        {todayPos !== null && <div className="absolute inset-y-0 w-px bg-brand-500/70" style={{ left: `${todayPos * 100}%` }} aria-hidden />}
+        <div className="absolute inset-0 grid" style={{ gridTemplateColumns: `repeat(${win.months.length}, minmax(0, 1fr))` }}>{win.months.map((m) => <div key={m.toISOString()} className={cx("border-l", m.getMonth() === 0 ? "border-slate-300" : "border-line-soft")} />)}</div>
+        {todayPos !== null && <div className="absolute inset-y-0 w-0.5 bg-brand-500" style={{ left: `${todayPos * 100}%` }} aria-hidden />}
         {bar.outside ? (
           <button onClick={onOpen} className={cx("absolute inset-y-0 flex items-center px-2 text-[11px] text-slate-400 hover:text-brand-600", bar.outside === "before" ? "left-0" : "right-0")}>
             {bar.outside === "before" ? `← ${p.code} ended ${fmtShort(p.end_date)}` : `${p.code} starts ${fmtShort(p.start_date)} →`}
           </button>
         ) : (
         <button onClick={onOpen} title={`${p.name}: ${fmtShort(p.start_date) || "?"} – ${fmtShort(p.end_date) || "open"} · ${PROJECT_STATUS_LABEL[p.status]} · ${prog.done}/${prog.total} tasks done`}
-          className={cx("absolute top-1/2 h-6 -translate-y-1/2 overflow-hidden text-left shadow-sm", bar.openStart ? "rounded-l-none" : "rounded-l-md", bar.openEnd ? "rounded-r-none" : "rounded-r-md")}
-          style={{ left: `${bar.left * 100}%`, width: `${bar.width * 100}%`, background: `${color}33`, boxShadow: `inset 0 0 0 1px ${color}` }}>
-          <span className="absolute inset-y-0 left-0" style={{ width: `${prog.pct}%`, background: color, opacity: 0.85 }} />
-          <span className="relative truncate px-2 text-[11px] leading-6 font-medium text-slate-900">{p.code}</span>
+          className={cx("absolute top-1/2 h-7 -translate-y-1/2 overflow-hidden text-left transition-[filter] hover:brightness-95", bar.openStart ? "rounded-l-none" : "rounded-l-lg", bar.openEnd ? "rounded-r-none" : "rounded-r-lg")}
+          style={{ left: `${bar.left * 100}%`, width: `${bar.width * 100}%`, background: `${color}24` }}>
+          <span className="absolute inset-y-0 left-0" style={{ width: `${prog.pct}%`, background: `${color}55` }} />
+          <span className="relative block truncate px-2.5 text-[11.5px] leading-7 font-semibold" style={{ color: `color-mix(in srgb, ${color} 70%, #0b1b3f)` }}>{PROJECT_STATUS_LABEL[p.status]} · {prog.pct}%</span>
         </button>
         )}
       </div>
@@ -345,16 +349,16 @@ function MiniTaskList({ tasks, empty }: { tasks: Task[]; empty: string }) {
   const store = useStore();
   if (!tasks.length) return <p className="px-4 py-6 text-center text-sm text-slate-500">{empty}</p>;
   return (
-    <ul className="max-h-80 divide-y divide-slate-100 overflow-y-auto scroll-thin">
+    <ul className="max-h-80 divide-y divide-line-soft overflow-y-auto scroll-thin">
       {tasks.slice(0, 40).map((t) => {
         const p = store.projectById.get(t.project_id);
         return (
           <li key={t.id}>
-            <Link to={`/projects/${t.project_id}?task=${t.id}`} className="flex items-center gap-2.5 px-4 py-2 hover:bg-slate-50">
+            <Link to={`/projects/${t.project_id}?task=${t.id}`} className="flex items-center gap-2.5 px-4 py-2.5 hover:bg-slate-50">
               <Avatar person={t.owner_id ? store.profileById.get(t.owner_id) : undefined} size={24} />
               <span className="min-w-0 flex-1">
-                <span className="block truncate text-sm">{t.title}</span>
-                <span className="block truncate text-xs text-slate-500">{p?.code} · {p?.name}</span>
+                <span className="block truncate text-[13.5px] font-semibold">{t.title}</span>
+                <span className="block truncate text-xs text-slate-500"><span className="font-mono text-[11px]">{p?.code}</span> · {p?.name}</span>
               </span>
               <DueBadge task={t} />
             </Link>

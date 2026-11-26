@@ -107,7 +107,7 @@ export function ProjectForm({ open, onClose, project }: { open: boolean; onClose
     <Modal open={open} onClose={onClose} title={project ? "Edit project" : "New project"} wide
       footer={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" loading={busy} onClick={save}>{project ? "Save changes" : canApprove(me) ? "Create project" : "Send for approval"}</Button></>}>
       {!project && store.projects.length > 0 && (
-        <div className="mb-4 rounded-lg bg-slate-50 p-3 ring-1 ring-slate-200">
+        <div className="mb-4 rounded-lg bg-slate-50 p-3 ring-1 ring-line">
           <Field label="Start from">
             <Select aria-label="Start from" value={templateId} onChange={(e) => pickTemplate(e.target.value)}>
               <option value="">A blank project</option>

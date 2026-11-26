@@ -26,17 +26,17 @@ export const PROJECT_STATUS_LABEL: Record<ProjectStatus, string> = {
   cancelled: "Cancelled",
 };
 export const PROJECT_STATUS_STYLE: Record<ProjectStatus, string> = {
-  planning: "bg-sky-50 text-sky-700 ring-sky-200",
-  active: "bg-emerald-50 text-emerald-700 ring-emerald-200",
-  on_hold: "bg-amber-50 text-amber-800 ring-amber-200",
-  completed: "bg-navy-50 text-navy-700 ring-navy-200",
-  cancelled: "bg-slate-100 text-slate-500 ring-slate-200",
+  planning: "bg-sky-100/70 text-sky-700 ring-transparent before:size-1.5 before:rounded-full before:bg-current",
+  active: "bg-emerald-100/70 text-emerald-700 ring-transparent before:size-1.5 before:rounded-full before:bg-current",
+  on_hold: "bg-amber-100/80 text-amber-800 ring-transparent before:size-1.5 before:rounded-full before:bg-current",
+  completed: "bg-indigo-100/70 text-indigo-700 ring-transparent before:size-1.5 before:rounded-full before:bg-current",
+  cancelled: "bg-slate-100 text-slate-500 ring-transparent before:size-1.5 before:rounded-full before:bg-current",
 };
 export const PROJECT_STATUS_BAR: Record<ProjectStatus, string> = {
-  planning: "#38BDF8",
+  planning: "#0EA5E9",
   active: "#10B981",
   on_hold: "#F59E0B",
-  completed: "#1E3A8A",
+  completed: "#4F46E5",
   cancelled: "#94A3B8",
 };
 
@@ -48,10 +48,10 @@ export const TASK_STATUS_LABEL: Record<TaskStatus, string> = {
   done: "Done",
 };
 export const TASK_STATUS_STYLE: Record<TaskStatus, string> = {
-  todo: "bg-slate-100 text-slate-700 ring-slate-200",
-  in_progress: "bg-blue-50 text-blue-700 ring-blue-200",
-  review: "bg-violet-50 text-violet-700 ring-violet-200",
-  done: "bg-emerald-50 text-emerald-700 ring-emerald-200",
+  todo: "bg-slate-100 text-slate-600 ring-transparent before:size-1.5 before:rounded-full before:bg-current",
+  in_progress: "bg-blue-100/70 text-blue-700 ring-transparent before:size-1.5 before:rounded-full before:bg-current",
+  review: "bg-violet-100/70 text-violet-700 ring-transparent before:size-1.5 before:rounded-full before:bg-current",
+  done: "bg-emerald-100/70 text-emerald-700 ring-transparent before:size-1.5 before:rounded-full before:bg-current",
 };
 export const TASK_STATUS_DOT: Record<TaskStatus, string> = {
   todo: "bg-slate-400",
@@ -63,9 +63,9 @@ export const TASK_STATUS_DOT: Record<TaskStatus, string> = {
 export const PRIORITIES: Priority[] = ["high", "medium", "low"];
 export const PRIORITY_LABEL: Record<Priority, string> = { high: "High", medium: "Medium", low: "Low" };
 export const PRIORITY_STYLE: Record<Priority, string> = {
-  high: "bg-red-50 text-red-700 ring-red-200",
-  medium: "bg-amber-50 text-amber-800 ring-amber-200",
-  low: "bg-slate-50 text-slate-600 ring-slate-200",
+  high: "bg-red-50 text-red-700 ring-transparent",
+  medium: "bg-amber-50 text-amber-800 ring-transparent",
+  low: "bg-slate-100 text-slate-600 ring-transparent",
 };
 
 export const SWATCHES = [

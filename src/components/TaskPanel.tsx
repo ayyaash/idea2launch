@@ -151,9 +151,9 @@ function TaskPanel({ taskId, onClose }: { taskId: string; onClose: () => void })
   return (
     <PanelShell onClose={onClose}>
       {/* header */}
-      <div className="flex items-center gap-2 border-b border-slate-200 px-4 py-2.5">
-        <Button size="sm" variant={done ? "secondary" : "primary"} disabled={!canEdit}
-          icon={done ? <CheckCircle2 className="size-4 text-emerald-600" /> : <Circle className="size-4" />}
+      <div className="flex h-14 shrink-0 items-center gap-2 border-b border-line-soft px-4">
+        <Button size="sm" variant="secondary" disabled={!canEdit}
+          icon={done ? <CheckCircle2 className="size-4 text-emerald-600" /> : <Circle className="size-4 text-slate-400" />}
           onClick={() => changeStatus(task, done ? "todo" : "done")}>
           {done ? "Completed" : "Mark complete"}
         </Button>
@@ -165,7 +165,7 @@ function TaskPanel({ taskId, onClose }: { taskId: string; onClose: () => void })
           <div className="relative">
             <IconButton label="More actions" onClick={() => setMoreOpen((o) => !o)}><MoreHorizontal className="size-4" /></IconButton>
             {moreOpen && (
-              <div className="absolute right-0 z-10 mt-1 w-40 rounded-lg bg-white py-1 shadow-lg ring-1 ring-slate-200" onMouseLeave={() => setMoreOpen(false)}>
+              <div className="absolute right-0 z-10 mt-1 w-40 rounded-xl bg-white py-1 shadow-pop ring-1 ring-line" onMouseLeave={() => setMoreOpen(false)}>
                 <button onClick={() => { setMoreOpen(false); remove(); }} className="flex w-full items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50">
                   <Trash2 className="size-4" /> Delete task
                 </button>
@@ -176,10 +176,10 @@ function TaskPanel({ taskId, onClose }: { taskId: string; onClose: () => void })
         <IconButton label="Close panel" onClick={onClose}><X className="size-5" /></IconButton>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-5 pt-4 pb-8 scroll-thin">
+      <div className="flex-1 overflow-y-auto px-5 pt-4 pb-8 scroll-thin sm:px-6">
         <div className="mb-1 flex flex-wrap items-center gap-1 text-xs text-slate-500">
-          <Link to={`/projects/${project.id}`} className="font-medium hover:text-brand-600" onClick={() => nav(`/projects/${project.id}?task=${task.id}`)}>
-            {project.code} · {project.name}
+          <Link to={`/projects/${project.id}`} className="font-medium hover:text-navy-700" onClick={() => nav(`/projects/${project.id}?task=${task.id}`)}>
+            <span className="font-mono text-[11.5px]">{project.code}</span> · {project.name}
           </Link>
           {parent && (<><ArrowRight className="size-3" /><button className="hover:text-brand-600" onClick={() => openTask(parent.id)}>{parent.title}</button></>)}
         </div>
@@ -189,39 +189,39 @@ function TaskPanel({ taskId, onClose }: { taskId: string; onClose: () => void })
         {blocked && !done && (() => {
           const pending = waitingOn.filter((t) => t.status !== "done");
           return (
-            <div className="mt-2 flex items-start gap-2 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-800 ring-1 ring-red-200">
-              <Lock className="mt-0.5 size-4 shrink-0" />
+            <div className="mt-3 flex items-start gap-2.5 rounded-xl bg-amber-50 px-3 py-2.5 text-[13px] text-amber-950 ring-1 ring-amber-200">
+              <Lock className="mt-0.5 size-4 shrink-0 text-amber-700" />
               <span><b>Waiting on {pending.length} predecessor{pending.length === 1 ? "" : "s"}.</b> {pending.map((t) => `"${t.title}"`).join(", ")} must be Done before this task can start or be completed.
                 {canApprove(me) ? " You can unlock it by changing the status." : " A Project Coordinator, Manager or Admin can unlock it."}</span>
             </div>
           );
         })()}
         {!canEdit && (
-          <p className="mt-2 rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-500 ring-1 ring-slate-200">
+          <p className="mt-2 rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-500 ring-1 ring-line">
             You can view this task. Only people assigned to this project can change it.
           </p>
         )}
 
         {/* fields */}
-        <dl className="mt-4 grid grid-cols-[110px_1fr] items-center gap-x-3 gap-y-2.5 text-sm">
+        <dl className="mt-4 grid grid-cols-[112px_1fr] items-center gap-x-2 gap-y-1 text-sm [&>dt]:text-[13px]">
           <dt className="text-slate-500">Status</dt>
           <dd>
-            <Select aria-label="Status" value={task.status} disabled={!canEdit} className="max-w-52"
+            <Select aria-label="Status" value={task.status} disabled={!canEdit} className="field-quiet max-w-52"
               onChange={(e) => changeStatus(task, e.target.value as TaskStatus)}>
               {TASK_STATUSES.map((s) => <option key={s} value={s}>{TASK_STATUS_LABEL[s]}</option>)}
             </Select>
           </dd>
           <dt className="text-slate-500">Priority</dt>
           <dd>
-            <Select aria-label="Priority" value={task.priority} disabled={!canEdit} className="max-w-52"
+            <Select aria-label="Priority" value={task.priority} disabled={!canEdit} className="field-quiet max-w-52"
               onChange={(e) => patch({ priority: e.target.value as Task["priority"] })}>
               {PRIORITIES.map((p) => <option key={p} value={p}>{PRIORITY_LABEL[p]}</option>)}
             </Select>
           </dd>
           <dt className="text-slate-500">Owner</dt>
-          <dd><PersonSelect label="Owner" value={task.owner_id} projectId={project.id} disabled={!canEdit} className="max-w-64" onChange={(owner_id) => patch({ owner_id })} /></dd>
+          <dd><PersonSelect label="Owner" value={task.owner_id} projectId={project.id} disabled={!canEdit} className="field-quiet max-w-64" onChange={(owner_id) => patch({ owner_id })} /></dd>
           <dt className="self-start pt-1 text-slate-500">Collaborators</dt>
-          <dd className="flex flex-wrap items-center gap-1.5">
+          <dd className="flex min-h-9 flex-wrap items-center gap-1.5 px-2 py-1">
             {collaborators.map((id) => (
               <PersonChip key={id} person={store.profileById.get(id)}
                 onRemove={canEdit ? () => store.mutate(() => supabase.from("task_collaborators").delete().match({ task_id: task.id, user_id: id })) : undefined} />
@@ -235,23 +235,23 @@ function TaskPanel({ taskId, onClose }: { taskId: string; onClose: () => void })
             {!canEdit && collaborators.length === 0 && <span className="text-slate-400">None</span>}
           </dd>
           <dt className="text-slate-500">Start date</dt>
-          <dd><Input type="date" aria-label="Start date" value={task.start_date ?? ""} disabled={!canEdit} className="max-w-44"
+          <dd><Input type="date" aria-label="Start date" value={task.start_date ?? ""} disabled={!canEdit} className="field-quiet max-w-44"
             min={parent?.start_date ?? undefined} max={(task.due_date ?? parent?.due_date) ?? undefined}
             onChange={(e) => setDate("start_date", e.target.value || null)} /></dd>
           <dt className="text-slate-500">Due date</dt>
           <dd className="flex items-center gap-2">
-            <Input type="date" aria-label="Due date" value={task.due_date ?? ""} disabled={!canEdit} className="max-w-44"
+            <Input type="date" aria-label="Due date" value={task.due_date ?? ""} disabled={!canEdit} className="field-quiet max-w-44"
               min={(task.start_date ?? parent?.start_date) ?? undefined} max={parent?.due_date ?? undefined}
               onChange={(e) => setDate("due_date", e.target.value || null)} />
             <DueBadge task={task} />
           </dd>
           {parent && (parent.start_date || parent.due_date) && (
-            <dd className="col-start-2 -mt-1 text-xs text-slate-500">
+            <dd className="col-start-2 px-2 text-xs text-slate-500">
               Must be within the main task's dates: {parent.start_date ? fmtDate(parent.start_date, "d MMM yyyy") : "any start"} – {parent.due_date ? fmtDate(parent.due_date, "d MMM yyyy") : "no due date"}.
             </dd>
           )}
           {!parent && subtasks.some((s) => s.start_date || s.due_date) && (
-            <dd className="col-start-2 -mt-1 text-xs text-slate-500">Subtask dates move to stay inside these dates.</dd>
+            <dd className="col-start-2 px-2 text-xs text-slate-500">Subtask dates move to stay inside these dates.</dd>
           )}
         </dl>
 
@@ -263,9 +263,9 @@ function TaskPanel({ taskId, onClose }: { taskId: string; onClose: () => void })
 
         {/* subtasks */}
         <Section title={`Subtasks${subtasks.length ? ` · ${subtasks.filter((s) => s.status === "done").length}/${subtasks.length}` : ""}`} icon={<ListTree className="size-4" />}>
-          <ul className="divide-y divide-slate-100 rounded-lg ring-1 ring-slate-200">
+          <ul className="divide-y divide-line-soft rounded-xl ring-1 ring-line">
             {subtasks.map((s) => (
-              <li key={s.id} className="flex items-center gap-2 px-2.5 py-1.5">
+              <li key={s.id} className="flex items-center gap-2 px-3 py-2">
                 <button aria-label={s.status === "done" ? "Mark not done" : "Mark done"} disabled={!canEdit}
                   onClick={() => changeStatus(s, s.status === "done" ? "todo" : "done")}>
                   {s.status === "done" ? <CheckCircle2 className="size-[18px] text-emerald-600" /> : <Circle className="size-[18px] text-slate-400 hover:text-emerald-600" />}
@@ -277,7 +277,7 @@ function TaskPanel({ taskId, onClose }: { taskId: string; onClose: () => void })
               </li>
             ))}
             {canEdit && !task.parent_id && (
-              <li className="px-2.5 py-1.5">
+              <li className="px-3 py-1.5">
                 <QuickAdd placeholder="Add a subtask and press Enter"
                   onAdd={(title) => store.mutate(() => supabase.from("tasks").insert({ project_id: project.id, parent_id: task.id, title }))} />
               </li>
@@ -349,9 +349,9 @@ function TaskPanel({ taskId, onClose }: { taskId: string; onClose: () => void })
 function PanelShell({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
   return (
     <>
-      <div className="fixed inset-0 z-40 bg-slate-900/20 md:hidden" onClick={onClose} />
+      <div className="fixed inset-0 z-40 bg-ink/30 md:hidden" onClick={onClose} />
       <section aria-label="Task details"
-        className="fixed inset-y-0 right-0 z-50 flex w-full flex-col bg-white shadow-2xl ring-1 ring-slate-200 md:w-[560px]">
+        className="fixed inset-y-0 right-0 z-50 flex w-full flex-col bg-white shadow-pop ring-1 ring-line md:w-[560px]">
         {children}
       </section>
     </>
@@ -361,7 +361,7 @@ function PanelShell({ children, onClose }: { children: React.ReactNode; onClose:
 function Section({ title, icon, children }: { title: string; icon?: React.ReactNode; children: React.ReactNode }) {
   return (
     <section className="mt-6">
-      <h3 className="mb-2 flex items-center gap-1.5 text-[13px] font-semibold tracking-wide text-slate-500 uppercase">{icon}{title}</h3>
+      <h3 className="mb-2 flex items-center gap-1.5 text-[11.5px] font-bold tracking-wider text-slate-500 uppercase">{icon}{title}</h3>
       {children}
     </section>
   );
@@ -371,7 +371,7 @@ export function DueBadge({ task }: { task: Task }) {
   const d = dueLabel(task.due_date, task.status === "done");
   if (!d) return null;
   return (
-    <span className={cx("text-xs whitespace-nowrap", d.tone === "late" ? "font-medium text-red-600" : d.tone === "soon" ? "text-amber-700" : "text-slate-500")}>
+    <span className={cx("text-xs font-semibold whitespace-nowrap", d.tone === "late" ? "inline-flex items-center gap-1 rounded-full bg-red-50 px-2 py-0.5 text-red-700 before:size-1.5 before:rounded-full before:bg-current" : d.tone === "soon" ? "text-cta" : "text-slate-500")}>
       {d.text}
     </span>
   );
@@ -385,7 +385,7 @@ function EditableTitle({ value, onSave, disabled, done }: { value: string; onSav
     <textarea aria-label="Task name" value={v} disabled={disabled} rows={1}
       onChange={(e) => setV(e.target.value)} onBlur={save}
       onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); (e.target as HTMLTextAreaElement).blur(); } }}
-      className={cx("w-full resize-none rounded-md border-0 bg-transparent px-1 py-0.5 -mx-1 text-xl font-semibold text-slate-900 focus:bg-slate-50 focus:ring-2 focus:ring-brand-500 focus:outline-none disabled:text-slate-900 field-sizing-content",
+      className={cx("w-full resize-none rounded-md border-0 bg-transparent px-1 py-0.5 -mx-1 text-[21px] leading-snug font-bold tracking-tight text-ink focus:bg-slate-50 focus:ring-2 focus:ring-navy-400 focus:outline-none disabled:text-ink field-sizing-content",
         done && "text-slate-500")} />
   );
 }
@@ -438,7 +438,7 @@ function DependencyEditor({ task, waitingOn, blocking, canEdit }: { task: Task; 
   const Row = ({ t, onRemove }: { t: Task; onRemove?: () => void }) => {
     const proj = t.project_id !== task.project_id ? store.projectById.get(t.project_id) : undefined;
     return (
-      <li className="flex items-center gap-2 px-2.5 py-1.5 text-sm">
+      <li className="flex items-center gap-2 px-3 py-2 text-sm">
         <span className={cx("size-2 shrink-0 rounded-full", TASK_STATUS_DOT[t.status])} title={TASK_STATUS_LABEL[t.status]} />
         <button className={cx("min-w-0 flex-1 truncate text-left hover:text-brand-600", t.status === "done" && "text-slate-400 line-through")} onClick={() => openTask(t.id)}>
           {proj && <span className="text-slate-500">{proj.code} · </span>}{t.title}
@@ -467,7 +467,7 @@ function DependencyEditor({ task, waitingOn, blocking, canEdit }: { task: Task; 
     <div className="space-y-3">
       <div>
         <p className="mb-1 text-xs font-medium text-slate-600">Must be Done before this task can start</p>
-        <ul className="rounded-lg ring-1 ring-slate-200 [&>li+li]:border-t [&>li+li]:border-slate-100">
+        <ul className="rounded-xl ring-1 ring-line [&>li+li]:border-t [&>li+li]:border-line-soft">
           {waitingOn.map((t) => (
             <Row key={t.id} t={t} onRemove={canEdit ? () => store.mutate(() => supabase.from("task_dependencies").delete().match({ task_id: task.id, depends_on_id: t.id })) : undefined} />
           ))}
@@ -481,7 +481,7 @@ function DependencyEditor({ task, waitingOn, blocking, canEdit }: { task: Task; 
                     await store.mutate(() => supabase.from("task_dependencies").insert({ task_id: task.id, depends_on_id: id }), { success: "Predecessor added" });
                   }} />
               ) : (
-                <button onClick={() => setAdding(true)} className="flex items-center gap-1 text-sm text-brand-600 hover:text-brand-700">
+                <button onClick={() => setAdding(true)} className="flex items-center gap-1 text-sm font-semibold text-cta hover:text-cta-hover">
                   <Plus className="size-4" /> Add predecessor
                 </button>
               )}
@@ -499,7 +499,7 @@ function DependencyEditor({ task, waitingOn, blocking, canEdit }: { task: Task; 
       {blocking.length > 0 && (
         <div>
           <p className="mb-1 text-xs font-medium text-slate-600">Waiting on this task</p>
-          <ul className="rounded-lg ring-1 ring-slate-200 [&>li+li]:border-t [&>li+li]:border-slate-100">{blocking.map((t) => <Row key={t.id} t={t} />)}</ul>
+          <ul className="rounded-xl ring-1 ring-line [&>li+li]:border-t [&>li+li]:border-line-soft">{blocking.map((t) => <Row key={t.id} t={t} />)}</ul>
         </div>
       )}
     </div>
@@ -553,12 +553,12 @@ function PredecessorPicker({ task, exclude, onPick, onClose }: { task: Task; exc
   const mark = (text: string) => {
     const n = q.trim();
     const i = n ? text.toLowerCase().indexOf(n.toLowerCase()) : -1;
-    return i < 0 ? text : <>{text.slice(0, i)}<b className="text-slate-900">{text.slice(i, i + n.length)}</b>{text.slice(i + n.length)}</>;
+    return i < 0 ? text : <>{text.slice(0, i)}<b className="text-ink">{text.slice(i, i + n.length)}</b>{text.slice(i + n.length)}</>;
   };
   let idx = -1;
   return (
-    <div ref={box} className="rounded-lg bg-white shadow-lg ring-1 ring-slate-300">
-      <div className="flex items-center gap-2 border-b border-slate-200 px-2.5">
+    <div ref={box} className="rounded-xl bg-white shadow-pop ring-1 ring-line">
+      <div className="flex items-center gap-2 border-b border-line px-2.5">
         <Search className="size-4 text-slate-400" />
         <input autoFocus aria-label="Search tasks" value={q} placeholder="Search this project's tasks…"
           className="h-9 flex-1 bg-transparent text-sm outline-none"
@@ -581,7 +581,7 @@ function PredecessorPicker({ task, exclude, onPick, onClose }: { task: Task; exc
               const i = idx;
               return (
                 <button key={t.id} role="option" aria-selected={i === hi} onMouseEnter={() => setHi(i)} onClick={() => onPick(t.id)}
-                  className={cx("flex w-full items-center gap-2 py-1.5 pr-2.5 text-left text-sm", sub ? "pl-7" : "pl-2.5", i === hi && "bg-brand-50")}>
+                  className={cx("flex w-full items-center gap-2 py-1.5 pr-2.5 text-left text-sm", sub ? "pl-7" : "pl-2.5", i === hi && "bg-navy-50")}>
                   <span className={cx("size-2 shrink-0 rounded-full", TASK_STATUS_DOT[t.status])} />
                   <span className={cx("min-w-0 flex-1 truncate text-slate-700", t.status === "done" && "text-slate-400")}>{mark(t.title)}</span>
                   <span className="shrink-0 text-xs text-slate-400">{sub ? "subtask · " : ""}{TASK_STATUS_LABEL[t.status]}{t.due_date ? ` · ${fmtDate(t.due_date)}` : ""}</span>
@@ -644,7 +644,7 @@ function Attachments({ task, files, canEdit, reload }: { task: Task; files: Atta
   return (
     <div>
       {files.length > 0 && (
-        <ul className="mb-2 divide-y divide-slate-100 rounded-lg ring-1 ring-slate-200">
+        <ul className="mb-2 divide-y divide-line-soft rounded-lg ring-1 ring-line">
           {files.map((f) => (
             <li key={f.id} className="flex items-center gap-2 px-2.5 py-2 text-sm">
               <Paperclip className="size-4 shrink-0 text-slate-400" />

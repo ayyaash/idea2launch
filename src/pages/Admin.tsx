@@ -100,13 +100,13 @@ function PeopleAdmin() {
         <Button variant="primary" icon={<UserPlus className="size-4" />} onClick={() => setAddOpen(true)}>Add person</Button>
       </div>
       <Card className="overflow-hidden">
-        <div className="hidden grid-cols-[minmax(0,1fr)_140px_210px_110px_110px] gap-3 border-b border-slate-200 bg-slate-50 px-4 py-2 text-xs font-medium tracking-wide text-slate-500 uppercase md:grid">
+        <div className="hidden grid-cols-[minmax(0,1fr)_140px_210px_110px_110px] gap-3 border-b border-line bg-slate-50 px-4 py-2 text-xs font-medium tracking-wide text-slate-500 uppercase md:grid">
           <span>Person</span><span>Username</span><span>Role</span><span>Status</span><span className="text-right">Actions</span>
         </div>
         {list.map((p) => {
           const self = p.id === me?.id;
           return (
-            <div key={p.id} className={cx("grid items-center gap-x-3 gap-y-2 border-b border-slate-100 px-4 py-3 md:grid-cols-[minmax(0,1fr)_140px_210px_110px_110px]", !p.is_active && "bg-slate-50 opacity-70")}>
+            <div key={p.id} className={cx("grid items-center gap-x-3 gap-y-2 border-b border-line-soft px-4 py-3 md:grid-cols-[minmax(0,1fr)_140px_210px_110px_110px]", !p.is_active && "bg-slate-50 opacity-70")}>
               <div className="flex min-w-0 items-center gap-3">
                 <Avatar person={p} size={34} />
                 <div className="min-w-0">
@@ -257,7 +257,7 @@ function CredentialsModal({ creds, onClose }: { creds: { username: string; passw
         <Button variant="primary" onClick={onClose}>Done</Button>
       </>}>
       <p className="mb-3 text-sm text-slate-600">Send these to {creds.name} privately. This is a one-time password: they'll be asked to choose their own when they sign in. You won't see it again, but you can always reset it.</p>
-      <pre className="rounded-lg bg-slate-50 p-3 font-mono text-sm whitespace-pre-wrap ring-1 ring-slate-200">{text}</pre>
+      <pre className="rounded-lg bg-slate-50 p-3 font-mono text-sm whitespace-pre-wrap ring-1 ring-line">{text}</pre>
     </Modal>
   );
 }
@@ -293,7 +293,7 @@ function CategoriesAdmin() {
       <Card className="overflow-hidden">
         {cats.length === 0 && <p className="px-4 py-8 text-center text-sm text-slate-500">No categories yet. Add your first one.</p>}
         {cats.map((c, i) => (
-          <div key={c.id} className="flex items-center gap-3 border-b border-slate-100 px-4 py-2.5 last:border-0">
+          <div key={c.id} className="flex items-center gap-3 border-b border-line-soft px-4 py-2.5 last:border-0">
             <span className="size-4 shrink-0 rounded-full" style={{ background: c.color }} />
             <span className="flex-1 text-sm font-medium">{c.name}</span>
             <span className="text-xs text-slate-500">{count(c.id)} project{count(c.id) === 1 ? "" : "s"}</span>
@@ -410,14 +410,14 @@ function RolesHelp() {
     <Card className="overflow-x-auto">
       <table className="w-full min-w-[640px] text-sm">
         <thead>
-          <tr className="border-b border-slate-200 bg-slate-50 text-xs text-slate-500">
+          <tr className="border-b border-line bg-slate-50 text-xs text-slate-500">
             <th className="px-4 py-2 text-left font-medium">What they can do</th>
             {ROLES.map((r) => <th key={r} className="px-2 py-2 font-medium">{ROLE_LABEL[r]}</th>)}
           </tr>
         </thead>
         <tbody>
           {rows.map(([label, allowed]) => (
-            <tr key={label} className="border-b border-slate-100">
+            <tr key={label} className="border-b border-line-soft">
               <td className="px-4 py-2">{label}</td>
               {allowed.map((a, i) => <td key={i} className="text-center">{a ? <Pill className="bg-emerald-50 text-emerald-700 ring-emerald-200">Yes</Pill> : <span className="text-slate-300">–</span>}</td>)}
             </tr>

@@ -102,17 +102,17 @@ export default function Workload() {
 
   return (
     <div className="mx-auto max-w-[1400px]">
-      <PageHeader title="Workload" subtitle={<>Open tasks per person per {f.unit}. More than <b>{threshold}</b> in a week counts as overloaded{me?.role === "admin" ? <> (change it in <Link to="/admin?tab=settings" className="text-brand-600 hover:underline">Admin panel</Link>)</> : null}.</>}
+      <PageHeader title="Workload" subtitle={<>Open tasks per person per {f.unit}. More than <b>{threshold}</b> in a week counts as overloaded{me?.role === "admin" ? <> (change it in <Link to="/admin?tab=settings" className="font-medium text-cta hover:underline">Admin panel</Link>)</> : null}.</>}
         actions={
-          <div className="flex items-center rounded-lg bg-white ring-1 ring-slate-300">
-            <button aria-label="Earlier" className="p-2 text-slate-500 hover:text-slate-900" onClick={() => shift(-1)}><ChevronLeft className="size-4" /></button>
-            <button className="px-2 text-sm font-medium" onClick={() => set("from", "")}>{f.unit === "week" ? "This week" : "This month"}</button>
-            <button aria-label="Later" className="p-2 text-slate-500 hover:text-slate-900" onClick={() => shift(1)}><ChevronRight className="size-4" /></button>
+          <div className="flex h-9 items-center rounded-lg bg-white shadow-card ring-1 ring-line">
+            <button aria-label="Earlier" className="p-2 text-slate-500 hover:text-ink" onClick={() => shift(-1)}><ChevronLeft className="size-4" /></button>
+            <button className="px-2 text-[13px] font-semibold" onClick={() => set("from", "")}>{f.unit === "week" ? "This week" : "This month"}</button>
+            <button aria-label="Later" className="p-2 text-slate-500 hover:text-ink" onClick={() => shift(1)}><ChevronRight className="size-4" /></button>
           </div>
         } />
 
-      <Card className="mb-4 p-3">
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+      <Card className="mb-4 px-4 py-3">
+        <div className="grid grid-cols-2 gap-x-3 gap-y-2.5 sm:grid-cols-3 lg:grid-cols-6">
           <Filter label="From">
             <Input type="date" aria-label="From" value={f.from || format(weeks[0].start, "yyyy-MM-dd")} onChange={(e) => set("from", e.target.value)} />
           </Filter>
@@ -185,8 +185,8 @@ export default function Workload() {
       </Card>
 
       {overloaded.length > 0 && (
-        <div className="mb-4 flex items-start gap-2 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-800 ring-1 ring-red-200">
-          <AlertTriangle className="mt-0.5 size-4 shrink-0" />
+        <div className="mb-4 flex items-start gap-2.5 rounded-xl bg-red-50 px-4 py-3 text-[13px] text-red-900 ring-1 ring-red-200">
+          <AlertTriangle className="mt-0.5 size-4 shrink-0 text-red-600" />
           <span><b>{overloaded.map((p) => p.full_name).join(", ")}</b> {overloaded.length > 1 ? "have" : "has"} more than {limit} open tasks in at least one {f.unit} shown.</span>
         </div>
       )}
@@ -195,15 +195,15 @@ export default function Workload() {
         <div className="overflow-x-auto scroll-thin">
           <table className="w-full min-w-[900px] border-collapse text-sm">
             <thead>
-              <tr className="border-b border-slate-200 bg-slate-50 text-xs text-slate-500">
-                <th className="sticky left-0 z-10 bg-slate-50 px-4 py-2 text-left font-medium">Person</th>
-                <th className="px-2 py-2 font-medium">Open</th>
+              <tr className="border-b border-line-soft bg-slate-50 text-xs text-slate-500">
+                <th className="sticky left-0 z-10 bg-slate-50 px-4 py-2.5 text-left font-semibold">Person</th>
+                <th className="px-2 py-2.5 font-semibold">Open</th>
                 {weeks.map((w, i) => (
-                  <th key={i} className={cx("whitespace-nowrap px-2 py-2 font-medium", isCurrent(w.start) && "text-brand-600")}>
+                  <th key={i} className={cx("whitespace-nowrap px-2 py-2.5 font-semibold", isCurrent(w.start) && "text-cta")}>
                     {f.unit === "week" ? format(w.start, "d MMM") : format(w.start, "MMM yy")}
                   </th>
                 ))}
-                <th className="px-2 py-2 font-medium">No date</th>
+                <th className="px-2 py-2.5 font-semibold">No date</th>
               </tr>
             </thead>
             <tbody>
@@ -213,19 +213,19 @@ export default function Workload() {
               {sorted.map((p) => {
                 const row = grid.get(p.id)!;
                 return (
-                  <tr key={p.id} className="border-b border-slate-100">
+                  <tr key={p.id} className="border-b border-line-soft">
                     <td className="sticky left-0 z-10 bg-white px-4 py-2">
                       <div className="flex items-center gap-2.5">
                         <Avatar person={p} size={28} />
                         <div className="min-w-0">
-                          <p className="truncate font-medium">{p.full_name}</p>
+                          <p className="truncate text-[13.5px] font-semibold">{p.full_name}</p>
                           <p className="truncate text-xs text-slate-500">{p.job_title || ROLE_LABEL[p.role]}</p>
                         </div>
                       </div>
                     </td>
                     <td className="px-2 py-2 text-center">
-                      <span className="font-semibold tabular-nums">{row.total}</span>
-                      {row.overdue > 0 && <span className="block text-[11px] text-red-600">{row.overdue} late</span>}
+                      <span className={cx("text-[15px] font-bold tabular-nums", row.total === 0 && "text-slate-300")}>{row.total}</span>
+                      {row.overdue > 0 && <span className="block text-[11px] font-semibold text-red-600">{row.overdue} late</span>}
                     </td>
                     {row.weeks.map((list, i) => (
                       <td key={i} className="px-1 py-1.5 text-center">
@@ -243,23 +243,24 @@ export default function Workload() {
             </tbody>
           </table>
         </div>
-        <div className="flex flex-wrap items-center gap-4 border-t border-slate-200 px-4 py-2.5 text-xs text-slate-500">
-          <Legend className="bg-emerald-100" label="Light" />
-          <Legend className="bg-amber-100" label={`Busy (over ${Math.round(limit * 0.7)})`} />
-          <Legend className="bg-red-500" label={`Overloaded (over ${limit}${f.unit === "month" ? " a month" : ""})`} />
-          <span className="flex items-center gap-1"><Info className="size-3.5" />A task counts in every {f.unit} between its start and due date. Late tasks count up to today.</span>
+        <div className="flex flex-wrap items-center gap-4 border-t border-line-soft px-4 py-3 text-xs text-slate-500">
+          <Legend className="bg-emerald-50" label="Light" />
+          <Legend className="bg-emerald-200/80" label="Steady" />
+          <Legend className="bg-amber-200/80" label={`Busy (over ${Math.round(limit * 0.7)})`} />
+          <Legend className="bg-red-600" label={`Overloaded (over ${limit}${f.unit === "month" ? " a month" : ""})`} />
+          <span className="flex items-center gap-1 lg:ml-auto"><Info className="size-3.5" />A task counts in every {f.unit} between its start and due date. Late tasks count up to today.</span>
         </div>
       </Card>
 
       {selected && selPerson && (
         <Card className="mt-4">
-          <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
+          <div className="flex items-center justify-between border-b border-line px-4 py-3">
             <h3 className="text-sm font-semibold">
               {selPerson.full_name} · {selected.week === "none" ? "tasks without dates" : f.unit === "week" ? `week of ${format(weeks[selected.week].start, "d MMM")}` : format(weeks[selected.week].start, "MMMM yyyy")} ({selTasks.length})
             </h3>
             <Button size="sm" variant="ghost" onClick={() => setSelected(null)}>Close</Button>
           </div>
-          <ul className="divide-y divide-slate-100">
+          <ul className="divide-y divide-line-soft">
             {selTasks.map((t) => <SelRow key={t.id} t={t} collab={t.owner_id !== selected.person} />)}
             {selTasks.length === 0 && <li className="px-4 py-4 text-sm text-slate-500">No open tasks.</li>}
           </ul>
@@ -270,22 +271,23 @@ export default function Workload() {
 }
 
 function Filter({ label, children }: { label: string; children: React.ReactNode }) {
-  return <label className="block min-w-0"><span className="mb-1 block text-xs font-medium text-slate-500">{label}</span>{children}</label>;
+  return <label className="block min-w-0"><span className="mb-1 block text-[11.5px] font-semibold text-slate-500">{label}</span>{children}</label>;
 }
 
 function Cell({ n, threshold, onClick, active, muted }: { n: number; threshold: number; onClick: () => void; active: boolean; muted?: boolean }) {
+  const over = !muted && n > threshold;
   const tone = n === 0 ? "bg-slate-50 text-slate-300" : muted ? "bg-slate-100 text-slate-600"
-    : n > threshold ? "bg-red-500 text-white font-semibold" : n > threshold * 0.7 ? "bg-amber-100 text-amber-900" : "bg-emerald-100 text-emerald-900";
+    : over ? "bg-red-600 text-white" : n > threshold * 0.7 ? "bg-amber-200/80 text-amber-900" : n > threshold * 0.3 ? "bg-emerald-200/80 text-emerald-900" : "bg-emerald-50 text-emerald-800";
   return (
-    <button onClick={onClick} disabled={n === 0} aria-label={`${n} tasks`}
-      className={cx("h-9 w-full min-w-12 rounded-md tabular-nums transition", tone, active && "ring-2 ring-navy-900", n > 0 && "hover:brightness-95")}>
-      {n || "·"}
+    <button onClick={onClick} disabled={n === 0} aria-label={`${n} tasks${over ? ", overloaded" : ""}`}
+      className={cx("inline-flex h-9 w-full min-w-12 items-center justify-center gap-1 rounded-lg font-semibold tabular-nums transition", tone, active && "ring-2 ring-navy-900 ring-offset-1", n > 0 && "hover:brightness-95")}>
+      {over && <AlertTriangle className="size-3.5" />}{n || "·"}
     </button>
   );
 }
 
 function Legend({ className, label }: { className: string; label: string }) {
-  return <span className="flex items-center gap-1.5"><span className={cx("size-3 rounded", className)} />{label}</span>;
+  return <span className="flex items-center gap-1.5"><span className={cx("size-3 rounded-[4px]", className)} />{label}</span>;
 }
 
 function SelRow({ t, collab }: { t: Task; collab: boolean }) {
@@ -295,7 +297,7 @@ function SelRow({ t, collab }: { t: Task; collab: boolean }) {
     <li>
       <Link to={`/projects/${t.project_id}?task=${t.id}`} className="flex items-center gap-3 px-4 py-2 hover:bg-slate-50">
         <span className="min-w-0 flex-1">
-          <span className="block truncate text-sm">{t.title}</span>
+          <span className="block truncate text-[13.5px] font-medium">{t.title}</span>
           <span className="block truncate text-xs text-slate-500">{p?.code} · {p?.name}{collab ? " · collaborator" : ""}</span>
         </span>
         <DueBadge task={t} />

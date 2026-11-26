@@ -40,36 +40,40 @@ export function Layout() {
     <div className="flex h-full">
       {/* sidebar */}
       <aside className={cx(
-        "fixed inset-y-0 left-0 z-40 flex w-64 flex-col bg-navy-950 text-navy-100 transition-transform lg:static lg:translate-x-0",
-        navOpen ? "translate-x-0" : "-translate-x-full")}>
-        <div className="flex items-center gap-2 px-3 pt-4 pb-3">
-          <NavLink to="/" className="block min-w-0 flex-1 rounded-xl bg-white px-3 py-2">
-            <img src="/logo.png" alt={settings.company_name || "Idea2Launch"} className="h-auto w-full" />
+        "fixed inset-y-0 left-0 z-40 flex w-60 flex-col border-r border-line bg-white transition-transform lg:static lg:translate-x-0",
+        navOpen ? "translate-x-0 shadow-pop" : "-translate-x-full")}>
+        <div className="flex items-center gap-2 px-4 pt-4 pb-4">
+          <NavLink to="/" className="flex min-w-0 flex-1 items-center gap-2.5 rounded-lg" aria-label={settings.company_name || "Idea2Launch"}>
+            <img src="/icon.png" alt="" className="size-9 shrink-0" />
+            <span className="min-w-0 leading-tight">
+              <span className="block text-[15px] font-extrabold tracking-tight text-navy-900">IDEA<span className="text-brand-500">2</span>LAUNCH</span>
+              <span className="block truncate text-[10.5px] font-medium text-slate-400">Innovate · Develop · Launch</span>
+            </span>
           </NavLink>
-          <button className="text-navy-200 lg:hidden" aria-label="Close menu" onClick={() => setNavOpen(false)}><X className="size-5" /></button>
+          <button className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 lg:hidden" aria-label="Close menu" onClick={() => setNavOpen(false)}><X className="size-5" /></button>
         </div>
-        <nav className="flex-1 space-y-0.5 px-3 py-2">
+        <nav className="flex-1 space-y-0.5 px-3 py-1">
           {links.map(({ to, label, icon: Icon, end }) => (
             <NavLink key={to} to={to} end={end}
               className={({ isActive }) => cx(
-                "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium",
-                isActive ? "bg-white/10 text-white" : "text-navy-200 hover:bg-white/5 hover:text-white")}>
-              {({ isActive }) => (<><Icon className={cx("size-[18px]", isActive && "text-brand-400")} />{label}</>)}
+                "flex h-9 items-center gap-2.5 rounded-lg px-3 text-[13.5px]",
+                isActive ? "bg-navy-50 font-semibold text-navy-900" : "font-medium text-slate-600 hover:bg-slate-100 hover:text-ink")}>
+              {({ isActive }) => (<><Icon className={cx("size-[18px]", isActive ? "text-brand-500" : "text-slate-400")} />{label}</>)}
             </NavLink>
           ))}
         </nav>
-        <div className="px-3 pb-1"><InstallApp dark /></div>
-        <div className="px-5 pb-4 text-[11px] tracking-wide text-navy-300">Innovate · Develop · Launch</div>
+        <div className="border-t border-line-soft px-3 pt-2 pb-3"><InstallApp /></div>
       </aside>
-      {navOpen && <div className="fixed inset-0 z-30 bg-slate-900/40 lg:hidden" onClick={() => setNavOpen(false)} />}
+      {navOpen && <div className="fixed inset-0 z-30 bg-ink/30 lg:hidden" onClick={() => setNavOpen(false)} />}
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-20 flex h-14 items-center gap-2 border-b border-slate-200 bg-white/90 px-3 backdrop-blur sm:px-5">
-          <button className="rounded-lg p-1.5 text-slate-600 hover:bg-slate-100 lg:hidden" aria-label="Open menu" onClick={() => setNavOpen(true)}>
-            <Menu className="size-5" />
-          </button>
-          <img src="/icon.png" alt="" className="size-7 lg:hidden" />
-          <div className="flex-1"><SearchBox /></div>
+        <header className="sticky top-0 z-20 flex h-14 items-center gap-2 border-b border-line bg-white/85 px-3 backdrop-blur sm:px-6 lg:px-8">
+          <NavLink to="/" className="flex shrink-0 items-center gap-1.5 lg:hidden" aria-label="Dashboard">
+            <img src="/icon.png" alt="" className="size-7" />
+            <span className="hidden text-sm font-extrabold tracking-tight text-navy-900 min-[400px]:block">IDEA<span className="text-brand-500">2</span>LAUNCH</span>
+          </NavLink>
+          <div className="min-w-0 flex-1 lg:max-w-md"><SearchBox /></div>
+          <div className="hidden flex-1 lg:block" />
           <NotificationsBell />
           <div className="relative" ref={menuRef}>
             <button onClick={() => setMenu((m) => !m)} className="flex items-center gap-2 rounded-lg py-1 pr-1 pl-1 hover:bg-slate-100" aria-label="Account menu">
@@ -81,7 +85,7 @@ export function Layout() {
               <ChevronDown className="hidden size-4 text-slate-400 sm:block" />
             </button>
             {menu && (
-              <div className="absolute right-0 z-50 mt-2 w-52 overflow-hidden rounded-xl bg-white py-1 shadow-xl ring-1 ring-slate-200">
+              <div className="absolute right-0 z-50 mt-2 w-52 overflow-hidden rounded-xl bg-white py-1 shadow-pop ring-1 ring-line">
                 <button className="flex w-full items-center gap-2 px-4 py-2 text-sm hover:bg-slate-50" onClick={() => { setMenu(false); nav("/account"); }}>
                   <UserCircle className="size-4" /> My account
                 </button>
@@ -92,10 +96,22 @@ export function Layout() {
             )}
           </div>
         </header>
-        <main className="min-w-0 flex-1 overflow-x-hidden px-4 py-5 sm:px-6 lg:px-8">
+        <main className="min-w-0 flex-1 overflow-x-hidden px-4 pt-5 pb-24 sm:px-6 lg:px-8 lg:pt-6 lg:pb-8">
           <Outlet />
         </main>
       </div>
+      {/* phone bottom bar */}
+      <nav className="no-print fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-line bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden" aria-label="Main">
+        {links.slice(0, 4).map(({ to, label, icon: Icon, end }) => (
+          <NavLink key={to} to={to} end={end}
+            className={({ isActive }) => cx("flex h-14 flex-col items-center justify-center gap-0.5 text-[10.5px] font-semibold", isActive ? "text-navy-900" : "text-slate-500")}>
+            {({ isActive }) => (<><Icon className={cx("size-5", isActive && "text-brand-500")} />{label === "Dashboard" ? "Home" : label}</>)}
+          </NavLink>
+        ))}
+        <button onClick={() => setNavOpen(true)} className="flex h-14 flex-col items-center justify-center gap-0.5 text-[10.5px] font-semibold text-slate-500" aria-label="Open menu">
+          <Menu className="size-5" />More
+        </button>
+      </nav>
       <TaskPanelHost />
     </div>
   );

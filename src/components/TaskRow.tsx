@@ -23,7 +23,7 @@ export function TaskRow({ task, canEdit, showProject, depth = 0, expanded, onTog
   const parent = task.parent_id && showProject ? store.taskById.get(task.parent_id) : undefined;
 
   return (
-    <div role="row" className="group grid grid-cols-[1fr_auto] items-center gap-2 border-b border-slate-100 px-3 py-2 hover:bg-slate-50 md:grid-cols-[minmax(0,1fr)_150px_110px_88px_110px]">
+    <div role="row" className="group grid grid-cols-[1fr_auto] items-center gap-2 border-b border-line-soft px-3 py-2.5 hover:bg-slate-50/80 md:grid-cols-[minmax(0,1fr)_150px_110px_88px_110px]">
       <div className="flex min-w-0 items-center gap-2" style={{ paddingLeft: depth * 26 }}>
         {dragHandle}
         {onToggleExpand ? (
@@ -36,7 +36,7 @@ export function TaskRow({ task, canEdit, showProject, depth = 0, expanded, onTog
           {done ? <CheckCircle2 className="size-[18px] text-emerald-600" /> : <Circle className="size-[18px] text-slate-400 hover:text-emerald-600" />}
         </button>
         <button onClick={() => openTask(task.id)} className="min-w-0 flex-1 text-left">
-          <span className={cx("block truncate text-sm", done ? "text-slate-400 line-through" : "text-slate-800 group-hover:text-slate-950")}>
+          <span className={cx("block truncate text-[13.5px]", done ? "text-slate-400 line-through" : "font-medium text-ink")}>
             {task.title}
           </span>
           {(showProject || parent) && (
@@ -74,7 +74,7 @@ export function TaskRow({ task, canEdit, showProject, depth = 0, expanded, onTog
 
 export function TaskTableHeader() {
   return (
-    <div className="hidden grid-cols-[minmax(0,1fr)_150px_110px_88px_110px] gap-2 border-b border-slate-200 bg-slate-50 px-3 py-2 text-xs font-medium tracking-wide text-slate-500 uppercase md:grid">
+    <div className="hidden grid-cols-[minmax(0,1fr)_150px_110px_88px_110px] gap-2 border-b border-line-soft bg-slate-50/80 px-3 py-2 text-[11px] font-bold tracking-wider text-slate-500 uppercase md:grid">
       <span className="pl-12">Task</span><span>Owner</span><span>Dates</span><span>Priority</span><span>Status</span>
     </div>
   );

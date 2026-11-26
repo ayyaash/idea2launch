@@ -46,8 +46,8 @@ export function NotificationsBell() {
         )}
       </IconButton>
       {open && (
-        <div className="absolute right-0 z-50 mt-2 w-[min(92vw,380px)] overflow-hidden rounded-xl bg-white shadow-xl ring-1 ring-slate-200">
-          <div className="flex items-center justify-between border-b border-slate-100 px-4 py-2.5">
+        <div className="absolute right-0 z-50 mt-2 w-[min(92vw,380px)] overflow-hidden rounded-xl bg-white shadow-xl ring-1 ring-line">
+          <div className="flex items-center justify-between border-b border-line-soft px-4 py-2.5">
             <span className="text-sm font-semibold">Notifications</span>
             {unread > 0 && (
               <button onClick={markAll} className="flex items-center gap-1 text-xs font-medium text-brand-600 hover:underline">

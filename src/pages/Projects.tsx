@@ -85,7 +85,7 @@ export default function Projects() {
         <EmptyState icon={<FolderKanban className="size-8" />} title="No projects match" text="Try clearing the filters." />
       ) : (
         <Card className="overflow-hidden">
-          <div className="hidden grid-cols-[110px_minmax(0,1fr)_150px_170px_110px_150px_110px] gap-3 border-b border-slate-200 bg-slate-50 px-4 py-2 text-xs font-medium tracking-wide text-slate-500 uppercase lg:grid">
+          <div className="hidden grid-cols-[110px_minmax(0,1fr)_150px_170px_110px_150px_110px] gap-3 border-b border-line bg-slate-50 px-4 py-2 text-xs font-medium tracking-wide text-slate-500 uppercase lg:grid">
             <span>Code</span><span>Project</span><span>Category</span><span>Lead</span><span>Status</span><span>Dates</span><span>Progress</span>
           </div>
           <ul>
@@ -95,11 +95,11 @@ export default function Projects() {
               const prog = progressOf(p.id, store.tasks);
               const team = [...store.membersOf(p.id)].map((id) => store.profileById.get(id));
               return (
-                <li key={p.id} className="border-b border-slate-100 last:border-0">
+                <li key={p.id} className="border-b border-line-soft last:border-0">
                   <Link to={`/projects/${p.id}`} className="grid gap-x-3 gap-y-1 px-4 py-3 hover:bg-slate-50 lg:grid-cols-[110px_minmax(0,1fr)_150px_170px_110px_150px_110px] lg:items-center">
                     <span className="font-mono text-xs text-slate-500">{p.code}</span>
                     <span className="min-w-0">
-                      <span className="flex min-w-0 items-center gap-2"><span className="truncate font-medium text-slate-900">{p.name}</span><ApprovalPill project={p} /></span>
+                      <span className="flex min-w-0 items-center gap-2"><span className="truncate font-medium text-ink">{p.name}</span><ApprovalPill project={p} /></span>
                       <span className="mt-0.5 flex items-center gap-2"><AvatarStack people={team} size={20} max={5} /></span>
                     </span>
                     <span className="flex items-center gap-1.5 text-sm text-slate-600">

@@ -52,7 +52,7 @@ export function PeoplePicker({ selected, onToggle, disabled, exclude = [], label
         <Plus className="size-3.5" /> {label}
       </button>
       {open && (
-        <div className="absolute left-0 z-50 mt-1 w-64 rounded-xl bg-white p-2 shadow-xl ring-1 ring-slate-200">
+        <div className="absolute left-0 z-50 mt-1 w-64 rounded-xl bg-white p-2 shadow-xl ring-1 ring-line">
           <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="Find a person"
             className="mb-1 h-8 w-full rounded-md bg-slate-100 px-2 text-sm focus:outline-none" />
           <div className="max-h-60 overflow-y-auto">

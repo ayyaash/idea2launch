@@ -146,7 +146,7 @@ export function ImportTasksModal({ open, onClose, project }: { open: boolean; on
       {file && plan && (
         <>
           <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
-            <span className="min-w-0 truncate text-slate-600"><b className="text-slate-900">{file.name}</b> · {plan.source}</span>
+            <span className="min-w-0 truncate text-slate-600"><b className="text-ink">{file.name}</b> · {plan.source}</span>
             <button className="text-brand-600 hover:text-brand-700" onClick={reset}>Choose another file</button>
           </div>
           <p className="mt-2 text-sm text-slate-700">
@@ -164,15 +164,15 @@ export function ImportTasksModal({ open, onClose, project }: { open: boolean; on
               {plan.warnings.map((w) => <li key={w} className="flex items-start gap-2"><AlertTriangle className="mt-0.5 size-4 shrink-0" />{w}</li>)}
             </ul>
           )}
-          <div className="mt-3 max-h-[46vh] overflow-auto rounded-lg ring-1 ring-slate-200 scroll-thin">
+          <div className="mt-3 max-h-[46vh] overflow-auto rounded-lg ring-1 ring-line scroll-thin">
             <table className="w-full min-w-[620px] text-sm">
               <thead className="sticky top-0 bg-slate-50 text-left text-xs text-slate-500">
                 <tr><th className="px-3 py-2 font-medium">Task</th><th className="px-2 py-2 font-medium">Owner</th><th className="px-2 py-2 font-medium">Dates</th><th className="px-2 py-2 font-medium">Priority</th><th className="px-2 py-2 font-medium">Status</th><th className="px-2 py-2 font-medium">Waits on</th></tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-line-soft">
                 {plan.tasks.slice(0, 400).map((t) => (
                   <tr key={t.ref}>
-                    <td className={cx("max-w-64 truncate px-3 py-1.5", t.parentRef ? "pl-8 text-slate-600" : "font-medium text-slate-900")} title={t.title}>{t.title}</td>
+                    <td className={cx("max-w-64 truncate px-3 py-1.5", t.parentRef ? "pl-8 text-slate-600" : "font-medium text-ink")} title={t.title}>{t.title}</td>
                     <td className="truncate px-2 py-1.5 text-slate-600">{t.ownerId ? store.profileById.get(t.ownerId)?.full_name : <span className="text-slate-300">–</span>}</td>
                     <td className="whitespace-nowrap px-2 py-1.5 text-slate-600">{t.start || t.due ? `${fmtDate(t.start) || "?"} – ${fmtDate(t.due) || "?"}` : <span className="text-slate-300">–</span>}</td>
                     <td className="px-2 py-1.5 text-slate-600">{PRIORITY_LABEL[t.priority]}</td>

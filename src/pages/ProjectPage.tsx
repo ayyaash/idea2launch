@@ -6,7 +6,7 @@ import { useStore } from "../lib/store";
 import { useAuth } from "../lib/auth";
 import { supabase } from "../lib/supabase";
 import {
-  PRIORITIES, PRIORITY_LABEL, PRIORITY_STYLE, PROJECT_STATUSES, PROJECT_STATUS_LABEL, ROLE_LABEL, TASK_STATUSES, TASK_STATUS_DOT,
+  PRIORITIES, PRIORITY_LABEL, PRIORITY_STYLE, PROJECT_STATUSES, PROJECT_STATUS_LABEL, PROJECT_STATUS_STYLE, ROLE_LABEL, TASK_STATUSES, TASK_STATUS_DOT,
   TASK_STATUS_LABEL, fmtDate, toDate,
 } from "../lib/format";
 import { progressOf, today } from "../lib/metrics";
@@ -50,7 +50,7 @@ export default function ProjectPage() {
 
   if (!store.ready) return <Spinner />;
   if (!project) {
-    return <EmptyState title="Project not found" text="It may have been deleted." action={<Link to="/projects" className="text-brand-600">Back to projects</Link>} />;
+    return <EmptyState title="Project not found" text="It may have been deleted." action={<Link to="/projects" className="font-semibold text-cta">Back to projects</Link>} />;
   }
 
   const canEdit = canEditProject(me, project, members);
@@ -75,26 +75,28 @@ export default function ProjectPage() {
 
   return (
     <div className="mx-auto max-w-[1400px]">
-      <Link to="/projects" className="mb-2 inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-800"><ArrowLeft className="size-4" />Projects</Link>
+      <Link to="/projects" className="mb-2 inline-flex items-center gap-1 text-[13px] font-medium text-slate-500 hover:text-ink"><ArrowLeft className="size-4" />Projects</Link>
       <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2 text-sm text-slate-500">
-            <span className="font-mono">{project.code}</span>
-            {cat && <span className="flex items-center gap-1"><span className="size-2.5 rounded-full" style={{ background: cat.color }} />{cat.name}</span>}
+            <span className="font-mono text-[12px]">{project.code}</span>
+            {cat && <span className="flex items-center gap-1.5 font-medium text-slate-600"><span className="size-2.5 rounded-[3px]" style={{ background: cat.color }} />{cat.name}</span>}
             <ApprovalPill project={project} />
           </div>
-          <h1 className="mt-0.5 text-xl font-semibold text-slate-900 sm:text-2xl">{project.name}</h1>
+          <h1 className="mt-1 text-xl font-bold tracking-tight text-ink sm:text-2xl">{project.name}</h1>
           <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-slate-600">
             {canManage ? (
-              <Select aria-label="Project status" value={project.status} className="h-8 w-auto py-1 text-[13px]"
-                onChange={(e) => store.patchProject(project.id, { status: e.target.value as ProjectStatus })}>
-                {PROJECT_STATUSES.map((s) => <option key={s} value={s}>{PROJECT_STATUS_LABEL[s]}</option>)}
-              </Select>
+              <span className={cx("inline-flex items-center rounded-full pl-2.5", PROJECT_STATUS_STYLE[project.status])}>
+                <Select aria-label="Project status" value={project.status} className="field-quiet h-7 w-auto rounded-full py-0 pl-1 text-[12.5px] font-semibold text-current hover:bg-transparent hover:ring-transparent focus:bg-transparent"
+                  onChange={(e) => store.patchProject(project.id, { status: e.target.value as ProjectStatus })}>
+                  {PROJECT_STATUSES.map((s) => <option key={s} value={s}>{PROJECT_STATUS_LABEL[s]}</option>)}
+                </Select>
+              </span>
             ) : <StatusText s={project.status} />}
             <span className="flex items-center gap-1.5"><Avatar person={lead} size={22} />{lead ? `Lead: ${lead.full_name}` : "No lead"}</span>
             <span className="flex items-center gap-1.5"><CalendarRange className="size-4 text-slate-400" />{fmtDate(project.start_date) || "?"} – {fmtDate(project.end_date) || "open"}</span>
             <span className="flex items-center gap-2">
-              <span className="h-1.5 w-24 overflow-hidden rounded-full bg-slate-100"><span className="block h-full bg-emerald-500" style={{ width: `${prog.pct}%` }} /></span>
+              <span className="h-1.5 w-28 overflow-hidden rounded-full bg-slate-200/70"><span className="block h-full rounded-full bg-emerald-500" style={{ width: `${prog.pct}%` }} /></span>
               {prog.done}/{prog.total} done
             </span>
           </div>
@@ -105,7 +107,7 @@ export default function ProjectPage() {
           <Button icon={<Download className="size-4" />} onClick={() => exportToExcel(`${project.code}.xlsx`, [project], allTasks, store)}>Excel</Button>
           {canContribute(me) && <Button icon={<CopyIcon className="size-4" />} onClick={() => setCopyOpen(true)}>Copy</Button>}
           {canManage && <Button icon={<Pencil className="size-4" />} onClick={() => setEditOpen(true)}>Edit</Button>}
-          {isManager(me) && <IconButton label="Delete project" onClick={del} className="ring-1 ring-slate-300"><Trash2 className="size-4" /></IconButton>}
+          {isManager(me) && <IconButton label="Delete project" onClick={del} className="size-9 bg-white shadow-card ring-1 ring-line hover:text-red-600"><Trash2 className="size-4" /></IconButton>}
         </div>
       </div>
 
@@ -189,7 +191,7 @@ function ListView({ projectId, tasks, canEdit, canAdd }: { projectId: string; ta
           return (
             <div key={g.key}>
               {groupBy === "status" && (
-                <div className="flex items-center gap-2 border-b border-slate-100 bg-slate-50/70 px-3 py-1.5">
+                <div className="flex items-center gap-2 border-b border-line-soft bg-slate-50/70 px-3 py-1.5">
                   <button onClick={() => toggle(collapsed, g.key, setCollapsed)} aria-expanded={!isCollapsed}
                     className="flex min-w-0 flex-1 items-center gap-2 py-0.5 text-left text-sm font-semibold text-slate-800">
                     <ChevronRight className={cx("size-4 shrink-0 text-slate-400 transition-transform", !isCollapsed && "rotate-90")} />
@@ -222,7 +224,7 @@ function ListView({ projectId, tasks, canEdit, canAdd }: { projectId: string; ta
                     <p className="px-4 py-6 text-center text-sm text-slate-500">No tasks yet.{canAdd ? " Add the first one below." : ""}</p>
                   )}
                   {canAdd && (
-                    <div className="border-b border-slate-100 py-1.5 pr-3 pl-9">
+                    <div className="border-b border-line-soft py-1.5 pr-3 pl-9">
                       <QuickAdd placeholder={groupBy === "status" ? `Add a task to ${g.title}` : "Add a task and press Enter"}
                         onAdd={(title) => store.mutate(() => supabase.from("tasks").insert({
                           project_id: projectId, title, ...(g.status ? { status: g.status } : {}),
@@ -340,7 +342,7 @@ function BoardView({ projectId, tasks, canEdit, canAdd }: { projectId: string; t
                 setDragId(null);
                 if (t && t.status !== status) await changeStatus(t, status);
               }}
-              className={cx("flex min-h-[60vh] flex-col rounded-xl bg-slate-100/80 p-2 transition", over === status && "bg-brand-50 ring-2 ring-brand-300")}>
+              className={cx("flex min-h-[60vh] flex-col rounded-2xl bg-slate-100/70 p-2 ring-1 ring-line-soft transition", over === status && "bg-navy-50 ring-2 ring-navy-200")}>
               <div className="flex items-center gap-2 px-1.5 pt-1 pb-2 text-sm font-semibold text-slate-700">
                 <span className={cx("size-2.5 rounded-full", TASK_STATUS_DOT[status])} />{TASK_STATUS_LABEL[status]}
                 <span className="font-normal text-slate-400">{col.length}</span>
@@ -353,7 +355,7 @@ function BoardView({ projectId, tasks, canEdit, canAdd }: { projectId: string; t
                   return (
                     <article key={t.id} draggable={canEdit} onDragStart={() => setDragId(t.id)} onDragEnd={() => { setDragId(null); setOver(null); }}
                       onClick={() => openTask(t.id)} aria-label={t.title}
-                      className={cx("cursor-pointer rounded-lg bg-white p-3 shadow-sm ring-1 ring-slate-200 hover:ring-slate-300", dragId === t.id && "opacity-50")}>
+                      className={cx("cursor-pointer rounded-xl bg-white p-3 shadow-card ring-1 ring-line hover:shadow-md hover:ring-slate-300", dragId === t.id && "opacity-50")}>
                       <p className={cx("text-sm font-medium", t.status === "done" && "text-slate-400 line-through")}>{t.title}</p>
                       <div className="mt-2 flex flex-wrap items-center gap-1.5">
                         <Pill className={PRIORITY_STYLE[t.priority]}>{PRIORITY_LABEL[t.priority]}</Pill>
@@ -442,7 +444,7 @@ function TimelineView({ tasks }: { tasks: Task[] }) {
 
   return (
     <Card className="overflow-hidden">
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-slate-200 px-4 py-2 text-xs text-slate-500">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-line px-4 py-2 text-xs text-slate-500">
         <label className="flex items-center gap-1.5 text-sm text-slate-700">
           <input type="checkbox" className="size-4 accent-brand-500" checked={showLinks}
             onChange={(e) => { setShowLinks(e.target.checked); try { localStorage.setItem("i2l.timelineLinks", e.target.checked ? "on" : "off"); } catch { /* ignore */ } }} />
@@ -456,11 +458,11 @@ function TimelineView({ tasks }: { tasks: Task[] }) {
       </div>
       <div ref={scroller} className="overflow-x-auto scroll-thin">
         <div style={{ minWidth: 260 + totalDays * DAY_W }}>
-          <div className="grid grid-cols-[260px_1fr] border-b border-slate-200 bg-slate-50 text-xs text-slate-500">
-            <div className="sticky left-0 z-[4] border-r border-slate-200 bg-slate-50 px-4 py-2 font-medium">Task</div>
+          <div className="grid grid-cols-[260px_1fr] border-b border-line-soft bg-slate-50 text-xs font-semibold text-slate-500">
+            <div className="sticky left-0 z-[4] border-r border-line bg-slate-50 px-4 py-2.5">Task</div>
             <div className="relative h-8">
               {weeks.map((w) => (
-                <div key={w.toISOString()} className="absolute inset-y-0 border-l border-slate-200 pl-1.5 leading-8" style={{ left: `${pos(w)}%` }}>{format(w, "d MMM")}</div>
+                <div key={w.toISOString()} className="absolute inset-y-0 border-l border-line pl-1.5 leading-8" style={{ left: `${pos(w)}%` }}>{format(w, "d MMM")}</div>
               ))}
             </div>
           </div>
@@ -473,15 +475,15 @@ function TimelineView({ tasks }: { tasks: Task[] }) {
               const waits = preds(t.id);
               const dim = hoverSet && !hoverSet.has(t.id);
               return (
-                <div key={t.id} className="grid grid-cols-[260px_1fr] border-b border-slate-100 hover:bg-slate-50" style={{ height: ROW_H }}
+                <div key={t.id} className="grid grid-cols-[260px_1fr] border-b border-line-soft hover:bg-slate-50" style={{ height: ROW_H }}
                   onMouseEnter={() => setHover(t.id)} onMouseLeave={() => setHover(null)}>
-                  <button onClick={() => openTask(t.id)} className="sticky left-0 z-[4] flex min-w-0 items-center gap-2 border-r border-slate-200 bg-white px-4 text-left">
+                  <button onClick={() => openTask(t.id)} className="sticky left-0 z-[4] flex min-w-0 items-center gap-2 border-r border-line bg-white px-4 text-left">
                     {locked ? <Lock className="size-3 shrink-0 text-red-500" /> : <span className={cx("size-2 shrink-0 rounded-full", TASK_STATUS_DOT[t.status])} />}
                     <span className={cx("truncate text-sm", t.parent_id && "pl-3 text-slate-600", dim && "opacity-50")}>{t.title}</span>
                   </button>
                   <div className="relative" ref={t.id === dated[0].id ? track : undefined}>
-                    {weeks.map((w) => <div key={w.toISOString()} className="absolute inset-y-0 border-l border-slate-100" style={{ left: `${pos(w)}%` }} />)}
-                    <div className="absolute inset-y-0 w-px bg-brand-500/70" style={{ left: `${pos(today())}%` }} />
+                    {weeks.map((w) => <div key={w.toISOString()} className="absolute inset-y-0 border-l border-line-soft" style={{ left: `${pos(w)}%` }} />)}
+                    <div className="absolute inset-y-0 w-0.5 bg-brand-500" style={{ left: `${pos(today())}%` }} />
                     <button onClick={() => openTask(t.id)}
                       title={`${t.title}: ${fmtDate(t.start_date) || "?"} → ${fmtDate(t.due_date) || "?"}${waits.length ? `\nWaits on: ${waits.map((p) => `${p.title}${p.status === "done" ? " (done)" : p.due_date ? ` (due ${fmtDate(p.due_date)})` : ""}`).join(", ")}` : ""}`}
                       className={cx("absolute top-1/2 z-[1] flex h-5 -translate-y-1/2 items-center gap-1 overflow-hidden rounded-md px-1 text-[11px] font-medium text-white transition-opacity",
@@ -522,7 +524,7 @@ function TimelineView({ tasks }: { tasks: Task[] }) {
           </div>
         </div>
       </div>
-      {undated.length > 0 && <p className="border-t border-slate-200 px-4 py-2 text-xs text-slate-500">{undated.length} task(s) without dates are not shown.</p>}
+      {undated.length > 0 && <p className="border-t border-line px-4 py-2 text-xs text-slate-500">{undated.length} task(s) without dates are not shown.</p>}
     </Card>
   );
 }
@@ -542,7 +544,7 @@ function PeopleView({ projectId, canManage }: { projectId: string; canManage: bo
         People on this project can add and edit its tasks. Assigning a task to someone adds them automatically.
         {canManage ? "" : " Only the project lead, Managers and Admins can change this list."}
       </p>
-      <Card className="divide-y divide-slate-100">
+      <Card className="divide-y divide-line-soft">
         {people.map((p) => {
           const open = tasks.filter((t) => t.owner_id === p!.id && t.status !== "done").length;
           const isLead = project.lead_id === p!.id;
@@ -550,7 +552,7 @@ function PeopleView({ projectId, canManage }: { projectId: string; canManage: bo
             <div key={p!.id} className="flex items-center gap-3 px-4 py-2.5">
               <Avatar person={p} size={32} />
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium">{p!.full_name} {isLead && <Pill className="ml-1 bg-brand-50 text-brand-700 ring-brand-200">Lead</Pill>}</p>
+                <p className="truncate text-sm font-medium">{p!.full_name} {isLead && <Pill className="ml-1 bg-brand-50 text-brand-700 ring-transparent">Lead</Pill>}</p>
                 <p className="truncate text-xs text-slate-500">{p!.job_title || ROLE_LABEL[p!.role]}</p>
               </div>
               <span className="text-sm text-slate-500">{open} open task{open === 1 ? "" : "s"}</span>

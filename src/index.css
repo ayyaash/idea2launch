@@ -24,12 +24,25 @@
   --color-brand-600: #d9560a;
   --color-brand-700: #b4430b;
 
+  --color-cta: #c2410c;
+  --color-cta-hover: #9a3412;
+  --color-ink: #0b1b3f;
+  --color-canvas: #f5f6fa;
+  --color-line: #e5e8ef;
+  --color-line-soft: #eef0f5;
+
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --shadow-card: 0 1px 2px rgba(11, 27, 63, 0.05);
+  --shadow-pop: 0 12px 32px -8px rgba(11, 27, 63, 0.18), 0 2px 6px rgba(11, 27, 63, 0.06);
+
   --color-sun-400: #fbbf24;
   --color-sun-500: #faac04;
 }
 
 html, body, #root { height: 100%; }
-body { background: #f6f7fb; color: #0f172a; -webkit-font-smoothing: antialiased; }
+body { background: var(--color-canvas); color: var(--color-ink); font-size: 14px; -webkit-font-smoothing: antialiased; font-feature-settings: "tnum" 1; }
+h1, h2, h3 { letter-spacing: -0.015em; }
 
 button:not(:disabled), [role="button"]:not([aria-disabled="true"]), select:not(:disabled), summary, label:has(input[type="checkbox"]) { cursor: pointer; }
 button, a, input, select, textarea { transition-property: color, background-color, border-color, box-shadow, opacity; transition-duration: 150ms; }

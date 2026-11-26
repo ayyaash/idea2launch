@@ -69,7 +69,7 @@ export default function SetPassword() {
           </label>
           {err && <p role="alert" className="text-sm text-red-600">{err}</p>}
           <button type="submit" disabled={busy}
-            className="flex w-full items-center justify-center gap-2 rounded-lg bg-brand-500 py-2.5 font-semibold text-white hover:bg-brand-600 disabled:opacity-60">
+            className="flex w-full items-center justify-center gap-2 rounded-lg bg-cta py-2.5 font-semibold text-white shadow-sm shadow-cta/30 hover:bg-cta-hover disabled:opacity-60">
             {busy && <Loader2 className="size-4 animate-spin" />} Save and continue
           </button>
         </form>

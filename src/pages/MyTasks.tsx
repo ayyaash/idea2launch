@@ -45,7 +45,7 @@ export default function MyTasks() {
           <EmptyState icon={<ListChecks className="size-8" />} title="Nothing here" text="Tasks assigned to you will show up here." />
         ) : groups.filter((g) => g.tasks.length).map((g) => (
           <section key={g.id}>
-            <h2 className={`mb-2 text-sm font-semibold ${g.id === "late" ? "text-red-600" : "text-slate-700"}`}>{g.title} <span className="font-normal text-slate-400">{g.tasks.length}</span></h2>
+            <h2 className={`mb-2 ml-0.5 text-[13px] font-bold ${g.id === "late" ? "text-red-600" : "text-slate-700"}`}>{g.title} <span className="ml-1 font-semibold text-slate-400">{g.tasks.length}</span></h2>
             <Card className="overflow-hidden">
               <TaskTableHeader />
               {g.tasks.map((t) => {

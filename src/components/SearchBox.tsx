@@ -34,7 +34,7 @@ export function SearchBox() {
         placeholder="Search projects and tasks" aria-label="Search"
         className="h-9 w-full rounded-lg bg-slate-100 pr-3 pl-9 text-sm placeholder:text-slate-500 focus:bg-white focus:ring-2 focus:ring-brand-500 focus:outline-none" />
       {open && q.trim().length >= 2 && (
-        <div className="absolute z-50 mt-2 w-full overflow-hidden rounded-xl bg-white py-1 shadow-xl ring-1 ring-slate-200">
+        <div className="absolute z-50 mt-2 w-full overflow-hidden rounded-xl bg-white py-1 shadow-xl ring-1 ring-line">
           {results.p.length + results.t.length === 0 && <p className="px-4 py-3 text-sm text-slate-500">No matches</p>}
           {results.p.map((p) => (
             <button key={p.id} onClick={() => go(`/projects/${p.id}`)} className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm hover:bg-slate-50">
