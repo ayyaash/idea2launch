@@ -1,11 +1,12 @@
 import type { ReactNode } from "react";
 import { CheckCircle2, Circle, ChevronRight, Lock, ListTree } from "lucide-react";
 import { useStore } from "../lib/store";
-import { PRIORITY_LABEL, PRIORITY_MARK, PRIORITY_STYLE, TASK_STATUS_LABEL, TASK_STATUS_STYLE, dueLabel, fmtRange, fmtShort } from "../lib/format";
+import { PRIORITIES, PRIORITY_LABEL, PRIORITY_MARK, PRIORITY_STYLE, TASK_STATUSES, TASK_STATUS_LABEL, TASK_STATUS_STYLE, dueLabel, fmtDate, fmtRange, fmtShort } from "../lib/format";
 import type { Task } from "../lib/types";
-import { Pill, cx } from "./ui";
+import { Input, Pill, cx } from "./ui";
 import { DueBadge, useOpenTask, useStatusChange } from "./TaskPanel";
-import { OwnerQuickPick } from "./pickers";
+import { OwnerQuickPick, QuickOption, QuickPopover } from "./pickers";
+import { useToast } from "./Toast";
 
 /** One task line used in project lists and "My tasks". */
 export function TaskRow({ task, canEdit, showProject, depth = 0, expanded, onToggleExpand, dragHandle }: {
@@ -21,6 +22,18 @@ export function TaskRow({ task, canEdit, showProject, depth = 0, expanded, onTog
   const blocked = task.status !== "done" && store.dependencies.some((d) => d.task_id === task.id && store.taskById.get(d.depends_on_id)?.status !== "done");
   const done = task.status === "done";
   const setOwner = (owner_id: string | null) => store.patchTask(task.id, { owner_id });
+  const toast = useToast();
+  const mainTask = task.parent_id ? store.taskById.get(task.parent_id) : undefined;
+  function setDate(key: "start_date" | "due_date", v: string | null) {
+    if (v && mainTask) {
+      if (mainTask.start_date && v < mainTask.start_date) { toast.error(`A subtask can't start before its main task (${fmtDate(mainTask.start_date, "d MMM yyyy")}).`); return; }
+      if (mainTask.due_date && v > mainTask.due_date) { toast.error(`A subtask can't end after its main task (${fmtDate(mainTask.due_date, "d MMM yyyy")}).`); return; }
+    }
+    const start = key === "start_date" ? v : task.start_date;
+    const due = key === "due_date" ? v : task.due_date;
+    if (start && due && due < start) { toast.error("The due date can't be before the start date."); return; }
+    store.patchTask(task.id, { [key]: v });
+  }
   const parent = task.parent_id && showProject ? store.taskById.get(task.parent_id) : undefined;
 
   return (
@@ -61,13 +74,47 @@ export function TaskRow({ task, canEdit, showProject, depth = 0, expanded, onTog
       <div className="hidden min-w-0 md:block">
         <OwnerQuickPick value={task.owner_id} projectId={task.project_id} disabled={!canEdit} onChange={setOwner} />
       </div>
-      <div className="hidden text-sm md:block">
-        {task.due_date && task.start_date && dueLabel(task.due_date, done)?.tone !== "late"
-          ? <span className="text-xs whitespace-nowrap text-slate-600">{fmtRange(task.start_date, task.due_date)}</span>
-          : task.due_date ? <DueBadge task={task} /> : task.start_date ? <span className="text-xs text-slate-400">from {fmtShort(task.start_date)}</span> : <span className="text-xs text-slate-300">–</span>}
+      <div className="hidden min-w-0 text-sm md:block">
+        <QuickPopover label={`Dates for "${task.title}"`} disabled={!canEdit} width={240} trigger={
+          task.due_date && task.start_date && dueLabel(task.due_date, done)?.tone !== "late"
+            ? <span className="text-xs whitespace-nowrap text-slate-600">{fmtRange(task.start_date, task.due_date)}</span>
+            : task.due_date ? <DueBadge task={task} /> : task.start_date ? <span className="text-xs text-slate-400">from {fmtShort(task.start_date)}</span> : <span className="text-xs text-slate-400">{canEdit ? "Set dates" : "–"}</span>
+        }>
+          {() => (
+            <div className="space-y-2 p-1.5">
+              <label className="block"><span className="mb-1 block text-xs font-semibold text-slate-600">Start date</span>
+                <Input type="date" value={task.start_date ?? ""} onChange={(e) => setDate("start_date", e.target.value || null)} /></label>
+              <label className="block"><span className="mb-1 block text-xs font-semibold text-slate-600">Due date</span>
+                <Input type="date" value={task.due_date ?? ""} onChange={(e) => setDate("due_date", e.target.value || null)} /></label>
+              {mainTask && (mainTask.start_date || mainTask.due_date) && (
+                <p className="text-[11px] text-slate-500">Must stay inside the main task: {fmtRange(mainTask.start_date, mainTask.due_date) || (mainTask.start_date ? `from ${fmtShort(mainTask.start_date)}` : `until ${fmtShort(mainTask.due_date!)}`)}</p>
+              )}
+            </div>
+          )}
+        </QuickPopover>
       </div>
-      <div className="hidden md:block"><Pill className={PRIORITY_STYLE[task.priority]}><span className="mr-1 font-extrabold tracking-tight">{PRIORITY_MARK[task.priority]}</span>{PRIORITY_LABEL[task.priority]}</Pill></div>
-      <div className="hidden md:block"><Pill className={TASK_STATUS_STYLE[task.status]}>{TASK_STATUS_LABEL[task.status]}</Pill></div>
+      <div className="hidden md:block">
+        <QuickPopover label={`Priority: ${PRIORITY_LABEL[task.priority]}. Change priority`} disabled={!canEdit} width={170} trigger={
+          <Pill className={PRIORITY_STYLE[task.priority]}><span className="mr-1 font-extrabold tracking-tight">{PRIORITY_MARK[task.priority]}</span>{PRIORITY_LABEL[task.priority]}</Pill>
+        }>
+          {(close) => PRIORITIES.map((p) => (
+            <QuickOption key={p} selected={p === task.priority} onClick={() => { close(); if (p !== task.priority) store.patchTask(task.id, { priority: p }); }}>
+              <Pill className={PRIORITY_STYLE[p]}><span className="mr-1 font-extrabold tracking-tight">{PRIORITY_MARK[p]}</span>{PRIORITY_LABEL[p]}</Pill>
+            </QuickOption>
+          ))}
+        </QuickPopover>
+      </div>
+      <div className="hidden md:block">
+        <QuickPopover label={`Status: ${TASK_STATUS_LABEL[task.status]}. Change status`} disabled={!canEdit} width={170} trigger={
+          <Pill className={TASK_STATUS_STYLE[task.status]}>{TASK_STATUS_LABEL[task.status]}</Pill>
+        }>
+          {(close) => TASK_STATUSES.map((st) => (
+            <QuickOption key={st} selected={st === task.status} onClick={() => { close(); if (st !== task.status) changeStatus(task, st); }}>
+              <Pill className={TASK_STATUS_STYLE[st]}>{TASK_STATUS_LABEL[st]}</Pill>
+            </QuickOption>
+          ))}
+        </QuickPopover>
+      </div>
     </div>
   );
 }

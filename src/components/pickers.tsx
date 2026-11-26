@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { Check, ChevronDown, Plus } from "lucide-react";
 import { useStore } from "../lib/store";
 import { Avatar, Select, cx } from "./ui";
@@ -174,5 +174,59 @@ export function OwnerQuickPick({ value, projectId, onChange, disabled, compact, 
         </div>
       )}
     </div>
+  );
+}
+
+/** A clickable cell that opens a small panel next to it (fixed position, so it isn't cut off by cards). */
+export function QuickPopover({ label, trigger, disabled, children, width = 224 }: {
+  label: string; trigger: ReactNode; disabled?: boolean; width?: number;
+  children: (close: () => void) => ReactNode;
+}) {
+  const [open, setOpen] = useState(false);
+  const [pos, setPos] = useState<CSSProperties>({});
+  const box = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const f = (e: MouseEvent) => { if (box.current && !box.current.contains(e.target as Node)) setOpen(false); };
+    const close = (e: Event) => { if (!(e.target instanceof Node && box.current?.contains(e.target))) setOpen(false); };
+    const key = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
+    document.addEventListener("mousedown", f);
+    document.addEventListener("keydown", key);
+    window.addEventListener("scroll", close, true);
+    window.addEventListener("resize", close);
+    return () => {
+      document.removeEventListener("mousedown", f); document.removeEventListener("keydown", key);
+      window.removeEventListener("scroll", close, true); window.removeEventListener("resize", close);
+    };
+  }, [open]);
+  if (disabled) return <>{trigger}</>;
+  function toggle(btn: HTMLElement) {
+    if (open) { setOpen(false); return; }
+    const r = btn.getBoundingClientRect();
+    const left = Math.max(8, Math.min(r.left, window.innerWidth - width - 8));
+    setPos(window.innerHeight - r.bottom < 260 && r.top > 260
+      ? { position: "fixed", left, bottom: window.innerHeight - r.top + 4, width }
+      : { position: "fixed", left, top: r.bottom + 4, width });
+    setOpen(true);
+  }
+  return (
+    <div className="relative min-w-0" ref={box}>
+      <button type="button" aria-label={label} aria-expanded={open} onClick={(e) => { e.stopPropagation(); toggle(e.currentTarget); }}
+        className="-mx-1 flex max-w-full min-w-0 items-center rounded-lg px-1 py-0.5 hover:bg-slate-100 hover:ring-1 hover:ring-slate-300">
+        {trigger}
+      </button>
+      {open && <div style={pos} className="z-[60] rounded-xl bg-white p-1.5 shadow-pop ring-1 ring-line">{children(() => setOpen(false))}</div>}
+    </div>
+  );
+}
+
+/** One choice inside a QuickPopover list. */
+export function QuickOption({ selected, onClick, children }: { selected?: boolean; onClick: () => void; children: ReactNode }) {
+  return (
+    <button type="button" role="option" aria-selected={selected} onClick={onClick}
+      className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-ink hover:bg-slate-100">
+      <span className="flex-1">{children}</span>
+      {selected && <Check className="size-4 text-brand-600" />}
+    </button>
   );
 }
