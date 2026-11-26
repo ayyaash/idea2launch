@@ -170,13 +170,15 @@ export default function Workload() {
               <option value="collab">Collaborator only</option>
             </Select>
           </Filter>
-          <label className="flex items-end gap-2 pb-2 text-sm text-slate-700">
-            <input type="checkbox" checked={f.hideEmpty} onChange={(e) => set("hideEmpty", e.target.checked)} className="size-4 accent-brand-500" />
-            Only people with tasks
-          </label>
+          <Filter label="People shown">
+            <Select aria-label="People shown" value={f.hideEmpty ? "busy" : "all"} onChange={(e) => set("hideEmpty", e.target.value === "busy")}>
+              <option value="all">Everyone</option>
+              <option value="busy">With tasks only</option>
+            </Select>
+          </Filter>
           {active > 0 && (
-            <div className="flex items-end pb-1">
-              <Button size="sm" variant="ghost" onClick={clear}><X className="size-4" /> Clear {active} filter{active === 1 ? "" : "s"}</Button>
+            <div className="flex items-end">
+              <Button variant="ghost" onClick={clear}><X className="size-4" /> Clear {active} filter{active === 1 ? "" : "s"}</Button>
             </div>
           )}
         </div>
