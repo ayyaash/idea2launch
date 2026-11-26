@@ -399,14 +399,20 @@ function AutoSaveTextarea({ value, onSave, disabled, placeholder }: { value: str
   );
 }
 
-export function QuickAdd({ placeholder, onAdd }: { placeholder: string; onAdd: (title: string) => unknown }) {
+export function QuickAdd({ placeholder, onAdd, inputId }: { placeholder: string; onAdd: (title: string) => unknown; inputId?: string }) {
   const [v, setV] = useState("");
+  const add = async () => { const t = v.trim(); if (!t) return; setV(""); await onAdd(t); };
   return (
-    <div className="flex items-center gap-2">
-      <Plus className="size-4 text-slate-400" />
-      <input value={v} onChange={(e) => setV(e.target.value)} placeholder={placeholder} aria-label={placeholder}
-        onKeyDown={async (e) => { if (e.key === "Enter" && v.trim()) { const t = v.trim(); setV(""); await onAdd(t); } }}
-        className="h-7 flex-1 bg-transparent text-sm placeholder:text-slate-400 focus:outline-none" />
+    <div className="group/add flex items-center gap-2 rounded-lg px-1.5 ring-1 ring-transparent ring-inset focus-within:bg-white focus-within:ring-navy-400 hover:bg-slate-50 focus-within:hover:bg-white">
+      <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-brand-50 text-cta group-focus-within/add:bg-cta group-focus-within/add:text-on-accent">
+        <Plus className="size-3.5" strokeWidth={2.5} />
+      </span>
+      <input id={inputId} value={v} onChange={(e) => setV(e.target.value)} placeholder={placeholder} aria-label={placeholder}
+        onKeyDown={(e) => { if (e.key === "Enter") add(); if (e.key === "Escape") { setV(""); e.currentTarget.blur(); } }}
+        className="h-9 min-w-0 flex-1 bg-transparent text-sm font-medium text-ink placeholder:font-medium placeholder:text-slate-500 focus:outline-none" style={{ outline: "none" }} />
+      {v.trim() && (
+        <button type="button" onClick={add} className="shrink-0 rounded-md bg-cta px-2.5 py-1 text-xs font-semibold text-on-accent hover:bg-cta-hover">Add</button>
+      )}
     </div>
   );
 }

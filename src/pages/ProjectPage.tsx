@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { addDays, differenceInCalendarDays, eachWeekOfInterval, format, max as maxDate, min as minDate, startOfDay } from "date-fns";
-import { List, KanbanSquare, GanttChart, Users, Pencil, Trash2, Download, ArrowLeft, CalendarRange, X, Lock, ChevronRight, Copy as CopyIcon, GripVertical, Upload } from "lucide-react";
+import { List, KanbanSquare, GanttChart, Users, Pencil, Trash2, Download, ArrowLeft, CalendarRange, X, Lock, ChevronRight, Copy as CopyIcon, GripVertical, Upload, Plus } from "lucide-react";
 import { useStore } from "../lib/store";
 import { useAuth } from "../lib/auth";
 import { supabase } from "../lib/supabase";
@@ -23,6 +23,9 @@ import { DueBadge, QuickAdd, useOpenTask, useStatusChange } from "../components/
 import { PeoplePicker } from "../components/pickers";
 
 type View = "list" | "board" | "timeline" | "people";
+
+/** The quick-add box the "Add task" button jumps to (list: first group, board: To do column). */
+const ADD_TASK_INPUT = "add-task-input";
 
 export default function ProjectPage() {
   const { id = "" } = useParams();
@@ -134,7 +137,14 @@ export default function ProjectPage() {
           <label className="flex items-center gap-2 text-sm text-slate-700">
             <input type="checkbox" checked={hideDone} onChange={(e) => setHideDone(e.target.checked)} className="size-4 accent-brand-500" /> Hide done
           </label>
-          {!canEdit && <span className="ml-auto text-xs text-slate-500">{canAdd ? "You can add tasks here. Adding one makes you part of this project." : "View only."}</span>}
+          {!canEdit && <span className="text-xs text-slate-500">{canAdd ? "You can add tasks here. Adding one makes you part of this project." : "View only."}</span>}
+          {canAdd && (
+            <Button variant="primary" icon={<Plus className="size-4" />} className="ml-auto"
+              onClick={() => {
+                if (view === "timeline") setView("list");
+                setTimeout(() => { const el = document.getElementById(ADD_TASK_INPUT); el?.scrollIntoView({ block: "center", behavior: "smooth" }); el?.focus({ preventScroll: true }); }, 50);
+              }}>Add task</Button>
+          )}
         </div>
       )}
 
@@ -186,7 +196,7 @@ function ListView({ projectId, tasks, canEdit, canAdd }: { projectId: string; ta
       </div>
       <Card className="overflow-hidden">
         <TaskTableHeader />
-        {groups.map((g) => {
+        {groups.map((g, gi) => {
           const isCollapsed = collapsed.has(g.key);
           return (
             <div key={g.key}>
@@ -221,11 +231,11 @@ function ListView({ projectId, tasks, canEdit, canAdd }: { projectId: string; ta
                     );
                   })}
                   {groupBy === "none" && g.tasks.length === 0 && (
-                    <p className="px-4 py-6 text-center text-sm text-slate-500">No tasks yet.{canAdd ? " Add the first one below." : ""}</p>
+                    <p className="px-4 pt-6 pb-3 text-center text-sm text-slate-500">No tasks yet.{canAdd ? " Type the first task's name below and press Enter." : ""}</p>
                   )}
                   {canAdd && (
-                    <div className="border-b border-line-soft py-1.5 pr-3 pl-9">
-                      <QuickAdd placeholder={groupBy === "status" ? `Add a task to ${g.title}` : "Add a task and press Enter"}
+                    <div className="border-b border-line-soft py-1.5 pr-3 pl-7">
+                      <QuickAdd inputId={gi === 0 ? ADD_TASK_INPUT : undefined} placeholder={groupBy === "status" ? `Add a task to ${g.title}…` : "Add a task: type a name and press Enter"}
                         onAdd={(title) => store.mutate(() => supabase.from("tasks").insert({
                           project_id: projectId, title, ...(g.status ? { status: g.status } : {}),
                         }))} />
@@ -370,8 +380,8 @@ function BoardView({ projectId, tasks, canEdit, canAdd }: { projectId: string; t
                   );
                 })}
                 {canAdd && (
-                  <div className="rounded-lg px-2 py-1 hover:bg-white/60">
-                    <QuickAdd placeholder="Add task" onAdd={(title) => store.mutate(() => supabase.from("tasks").insert({ project_id: projectId, title, status }))} />
+                  <div className="pt-1">
+                    <QuickAdd inputId={status === "todo" ? ADD_TASK_INPUT : undefined} placeholder="Add task" onAdd={(title) => store.mutate(() => supabase.from("tasks").insert({ project_id: projectId, title, status }))} />
                   </div>
                 )}
               </div>
