@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, FolderKanban, ListChecks, Users, Settings, LogOut, Menu, X, UserCircle, ChevronDown, Tags, Sun, Moon, Monitor } from "lucide-react";
+import { LayoutDashboard, FolderKanban, ListChecks, Users, Settings, LogOut, Menu, X, UserCircle, ChevronDown, Tags, Sun, Moon, Monitor, FlaskConical } from "lucide-react";
 import { useTheme, type ThemePref } from "../lib/theme";
 import { useAuth } from "../lib/auth";
 import { useStore } from "../lib/store";
@@ -34,6 +34,7 @@ export function Layout() {
     { to: "/my-tasks", label: "My tasks", icon: ListChecks },
     { to: "/projects", label: "Projects", icon: FolderKanban },
     { to: "/workload", label: "Workload", icon: Users },
+    { to: "/trials", label: "R&D Trials", icon: FlaskConical },
     ...(me?.role === "admin" ? [{ to: "/admin", label: "Admin panel", icon: Settings }]
       : me?.role === "manager" ? [{ to: "/admin", label: "Categories", icon: Tags }] : []),
   ];
