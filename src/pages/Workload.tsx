@@ -277,7 +277,7 @@ function Filter({ label, children }: { label: string; children: React.ReactNode 
 function Cell({ n, threshold, onClick, active, muted }: { n: number; threshold: number; onClick: () => void; active: boolean; muted?: boolean }) {
   const over = !muted && n > threshold;
   const tone = n === 0 ? "bg-slate-50 text-slate-300" : muted ? "bg-slate-100 text-slate-600"
-    : over ? "bg-red-600 text-white" : n > threshold * 0.7 ? "bg-amber-200/80 text-amber-900" : n > threshold * 0.3 ? "bg-emerald-200/80 text-emerald-900" : "bg-emerald-50 text-emerald-800";
+    : over ? "bg-red-600 text-on-accent" : n > threshold * 0.7 ? "bg-amber-200/80 text-amber-900" : n > threshold * 0.3 ? "bg-emerald-200/80 text-emerald-900" : "bg-emerald-50 text-emerald-800";
   return (
     <button onClick={onClick} disabled={n === 0} aria-label={`${n} tasks${over ? ", overloaded" : ""}`}
       className={cx("inline-flex h-9 w-full min-w-12 items-center justify-center gap-1 rounded-lg font-semibold tabular-nums transition", tone, active && "ring-2 ring-navy-900 ring-offset-1", n > 0 && "hover:brightness-95")}>

@@ -21,7 +21,7 @@ export default function Login() {
   }
 
   return (
-    <div className="flex min-h-full items-center justify-center bg-gradient-to-br from-navy-950 via-navy-900 to-navy-700 p-4">
+    <div className="flex min-h-full items-center justify-center bg-gradient-to-br from-[#041a3e] via-[#072a62] to-[#0d3270] p-4">
       <div className="w-full max-w-sm rounded-2xl bg-white p-7 shadow-2xl">
         <img src="/logo.png" alt="Idea2Launch" className="mx-auto mb-6 h-20 w-auto" />
         {!isConfigured && (
@@ -43,7 +43,7 @@ export default function Login() {
           </label>
           {err && <p role="alert" className="text-sm text-red-600">{err}</p>}
           <button type="submit" disabled={busy}
-            className="flex w-full items-center justify-center gap-2 rounded-lg bg-cta py-2.5 font-semibold text-white shadow-sm shadow-cta/30 hover:bg-cta-hover disabled:opacity-60">
+            className="flex w-full items-center justify-center gap-2 rounded-lg bg-cta py-2.5 font-semibold text-on-accent shadow-sm shadow-cta/30 hover:bg-cta-hover disabled:opacity-60">
             {busy && <Loader2 className="size-4 animate-spin" />} Sign in
           </button>
         </form>

@@ -337,7 +337,7 @@ function TimelineRow({ p, win, todayPos, tasks, onOpen }: { p: Project; win: Win
           className={cx("absolute top-1/2 h-7 -translate-y-1/2 overflow-hidden text-left transition-[filter] hover:brightness-95", bar.openStart ? "rounded-l-none" : "rounded-l-lg", bar.openEnd ? "rounded-r-none" : "rounded-r-lg")}
           style={{ left: `${bar.left * 100}%`, width: `${bar.width * 100}%`, background: `${color}24` }}>
           <span className="absolute inset-y-0 left-0" style={{ width: `${prog.pct}%`, background: `${color}55` }} />
-          <span className="relative block truncate px-2.5 text-[11.5px] leading-7 font-semibold" style={{ color: `color-mix(in srgb, ${color} 70%, #0b1b3f)` }}>{PROJECT_STATUS_LABEL[p.status]} · {prog.pct}%</span>
+          <span className="relative block truncate px-2.5 text-[11.5px] leading-7 font-semibold" style={{ color: `color-mix(in srgb, ${color} 70%, var(--color-ink))` }}>{PROJECT_STATUS_LABEL[p.status]} · {prog.pct}%</span>
         </button>
         )}
       </div>

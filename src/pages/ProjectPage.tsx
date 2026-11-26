@@ -179,7 +179,7 @@ function ListView({ projectId, tasks, canEdit, canAdd }: { projectId: string; ta
         <span className="mr-1 text-slate-500">Show</span>
         {(["none", "status"] as const).map((m) => (
           <button key={m} onClick={() => setMode(m)} aria-pressed={groupBy === m}
-            className={cx("rounded-md px-2.5 py-1 font-medium", groupBy === m ? "bg-navy-900 text-white" : "text-slate-600 hover:bg-slate-200")}>
+            className={cx("rounded-md px-2.5 py-1 font-medium", groupBy === m ? "bg-deep text-on-accent" : "text-slate-600 hover:bg-slate-200")}>
             {m === "none" ? "All tasks" : "By status"}
           </button>
         ))}
@@ -451,7 +451,7 @@ function TimelineView({ tasks }: { tasks: Task[] }) {
           Show predecessor links
         </label>
         {showLinks && links.length > 0 && <>
-          <span className="flex items-center gap-1"><svg width="22" height="8"><path d="M0 4h16" stroke="#475569" strokeWidth="1.6" /><path d="M15 0l6 4-6 4z" fill="#475569" /></svg>predecessor → task that waits</span>
+          <span className="flex items-center gap-1"><svg width="22" height="8"><path d="M0 4h16" stroke="var(--color-slate-600)" strokeWidth="1.6" /><path d="M15 0l6 4-6 4z" fill="var(--color-slate-600)" /></svg>predecessor → task that waits</span>
           <span className="flex items-center gap-1 text-red-600"><svg width="22" height="8"><path d="M0 4h16" stroke="#ef4444" strokeWidth="1.8" strokeDasharray="4 3" /><path d="M15 0l6 4-6 4z" fill="#ef4444" /></svg>starts before its predecessor ends</span>
         </>}
         <span className="flex items-center gap-1"><span className="inline-block h-3 w-5 rounded-sm bg-stripes" /><Lock className="size-3" /> locked until predecessors are Done</span>
@@ -486,7 +486,7 @@ function TimelineView({ tasks }: { tasks: Task[] }) {
                     <div className="absolute inset-y-0 w-0.5 bg-brand-500" style={{ left: `${pos(today())}%` }} />
                     <button onClick={() => openTask(t.id)}
                       title={`${t.title}: ${fmtDate(t.start_date) || "?"} → ${fmtDate(t.due_date) || "?"}${waits.length ? `\nWaits on: ${waits.map((p) => `${p.title}${p.status === "done" ? " (done)" : p.due_date ? ` (due ${fmtDate(p.due_date)})` : ""}`).join(", ")}` : ""}`}
-                      className={cx("absolute top-1/2 z-[1] flex h-5 -translate-y-1/2 items-center gap-1 overflow-hidden rounded-md px-1 text-[11px] font-medium text-white transition-opacity",
+                      className={cx("absolute top-1/2 z-[1] flex h-5 -translate-y-1/2 items-center gap-1 overflow-hidden rounded-md px-1 text-[11px] font-medium text-on-accent transition-opacity",
                         locked ? "bg-stripes text-slate-700" : t.status === "done" ? "bg-emerald-500" : late ? "bg-red-500" : t.status === "in_progress" ? "bg-blue-500" : t.status === "review" ? "bg-violet-500" : "bg-navy-400",
                         showLinks && links.some((l) => l.late && l.to.id === t.id) && "ring-2 ring-red-500",
                         dim && "opacity-40")}
@@ -500,7 +500,7 @@ function TimelineView({ tasks }: { tasks: Task[] }) {
             {showLinks && trackW > 0 && links.length > 0 && (
               <svg className="pointer-events-none absolute top-0 z-[2] overflow-visible" style={{ left: 260, width: trackW, height: dated.length * ROW_H }}>
                 <defs>
-                  <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0L10,5L0,10z" fill="#475569" /></marker>
+                  <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0L10,5L0,10z" fill="var(--color-slate-600)" /></marker>
                   <marker id="arr-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0L10,5L0,10z" fill="#ef4444" /></marker>
                   <marker id="arr-hi" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0L10,5L0,10z" fill="#ea580c" /></marker>
                 </defs>
@@ -515,7 +515,7 @@ function TimelineView({ tasks }: { tasks: Task[] }) {
                   const hi = hover && (l.from.id === hover || l.to.id === hover);
                   const faded = hover && !hi;
                   return <path key={l.key} d={d} fill="none" strokeLinejoin="round"
-                    stroke={hi ? "#ea580c" : l.late ? "#ef4444" : "#475569"} strokeWidth={hi ? 2.2 : l.late ? 1.8 : 1.5}
+                    stroke={hi ? "#ea580c" : l.late ? "#ef4444" : "var(--color-slate-500)"} strokeWidth={hi ? 2.2 : l.late ? 1.8 : 1.5}
                     strokeDasharray={l.late && !hi ? "4 3" : undefined} opacity={faded ? 0.25 : 1}
                     markerEnd={`url(#${hi ? "arr-hi" : l.late ? "arr-red" : "arr"})`} />;
                 })}

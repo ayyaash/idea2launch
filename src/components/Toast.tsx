@@ -21,7 +21,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         {items.map((t) => (
           <div key={t.id} role="status"
             className={`pointer-events-auto flex max-w-md items-start gap-2 rounded-lg px-4 py-3 text-sm shadow-lg ring-1 ${
-              t.kind === "success" ? "bg-navy-900 text-white ring-navy-800" : "bg-red-600 text-white ring-red-700"}`}>
+              t.kind === "success" ? "bg-deep text-on-accent ring-deep" : "bg-red-600 text-on-accent ring-red-700"}`}>
             {t.kind === "success" ? <CheckCircle2 className="mt-0.5 size-4 shrink-0" /> : <AlertCircle className="mt-0.5 size-4 shrink-0" />}
             <span className="flex-1">{t.text}</span>
             <button aria-label="Dismiss" onClick={() => setItems((xs) => xs.filter((x) => x.id !== t.id))}><X className="size-4 opacity-70" /></button>

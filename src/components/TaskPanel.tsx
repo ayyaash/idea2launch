@@ -349,7 +349,7 @@ function TaskPanel({ taskId, onClose }: { taskId: string; onClose: () => void })
 function PanelShell({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
   return (
     <>
-      <div className="fixed inset-0 z-40 bg-ink/30 md:hidden" onClick={onClose} />
+      <div className="fixed inset-0 z-40 bg-scrim/40 md:hidden" onClick={onClose} />
       <section aria-label="Task details"
         className="fixed inset-y-0 right-0 z-50 flex w-full flex-col bg-white shadow-pop ring-1 ring-line md:w-[560px]">
         {children}

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, FolderKanban, ListChecks, Users, Settings, LogOut, Menu, X, UserCircle, ChevronDown, Tags } from "lucide-react";
+import { LayoutDashboard, FolderKanban, ListChecks, Users, Settings, LogOut, Menu, X, UserCircle, ChevronDown, Tags, Sun, Moon, Monitor } from "lucide-react";
+import { useTheme, type ThemePref } from "../lib/theme";
 import { useAuth } from "../lib/auth";
 import { useStore } from "../lib/store";
 import { ROLE_LABEL } from "../lib/format";
@@ -15,6 +16,7 @@ export function Layout() {
   const { settings } = useStore();
   const [navOpen, setNavOpen] = useState(false);
   const [menu, setMenu] = useState(false);
+  const [theme, setTheme] = useTheme();
   const loc = useLocation();
   const nav = useNavigate();
   const menuRef = useRef<HTMLDivElement>(null);
@@ -44,7 +46,7 @@ export function Layout() {
         navOpen ? "translate-x-0 shadow-pop" : "-translate-x-full")}>
         <div className="flex items-center gap-2 px-4 pt-4 pb-4">
           <NavLink to="/" className="flex min-w-0 flex-1 items-center gap-2.5 rounded-lg" aria-label={settings.company_name || "Idea2Launch"}>
-            <img src="/icon.png" alt="" className="size-9 shrink-0" />
+            <img src="/icon.png" alt="" className="size-9 shrink-0 dark:rounded-lg dark:bg-[#fff] dark:p-0.5" />
             <span className="min-w-0 leading-tight">
               <span className="block text-[15px] font-extrabold tracking-tight text-navy-900">IDEA<span className="text-brand-500">2</span>LAUNCH</span>
               <span className="block truncate text-[10.5px] font-medium text-slate-400">Innovate · Develop · Launch</span>
@@ -64,12 +66,12 @@ export function Layout() {
         </nav>
         <div className="border-t border-line-soft px-3 pt-2 pb-3"><InstallApp /></div>
       </aside>
-      {navOpen && <div className="fixed inset-0 z-30 bg-ink/30 lg:hidden" onClick={() => setNavOpen(false)} />}
+      {navOpen && <div className="fixed inset-0 z-30 bg-scrim/40 lg:hidden" onClick={() => setNavOpen(false)} />}
 
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="sticky top-0 z-20 flex h-14 items-center gap-2 border-b border-line bg-white/85 px-3 backdrop-blur sm:px-6 lg:px-8">
           <NavLink to="/" className="flex shrink-0 items-center gap-1.5 lg:hidden" aria-label="Dashboard">
-            <img src="/icon.png" alt="" className="size-7" />
+            <img src="/icon.png" alt="" className="size-7 dark:rounded-md dark:bg-[#fff] dark:p-0.5" />
             <span className="hidden text-sm font-extrabold tracking-tight text-navy-900 min-[400px]:block">IDEA<span className="text-brand-500">2</span>LAUNCH</span>
           </NavLink>
           <div className="min-w-0 flex-1 lg:max-w-md"><SearchBox /></div>
@@ -85,10 +87,21 @@ export function Layout() {
               <ChevronDown className="hidden size-4 text-slate-400 sm:block" />
             </button>
             {menu && (
-              <div className="absolute right-0 z-50 mt-2 w-52 overflow-hidden rounded-xl bg-white py-1 shadow-pop ring-1 ring-line">
+              <div className="absolute right-0 z-50 mt-2 w-60 overflow-hidden rounded-xl bg-white py-1 shadow-pop ring-1 ring-line">
                 <button className="flex w-full items-center gap-2 px-4 py-2 text-sm hover:bg-slate-50" onClick={() => { setMenu(false); nav("/account"); }}>
                   <UserCircle className="size-4" /> My account
                 </button>
+                <div className="border-y border-line-soft px-4 py-2.5">
+                  <p className="mb-1.5 text-[11px] font-bold tracking-wider text-slate-500 uppercase">Appearance</p>
+                  <div className="grid grid-cols-3 gap-1 rounded-lg bg-slate-100 p-0.5" role="radiogroup" aria-label="Appearance">
+                    {([["light", "Light", Sun], ["dark", "Dark", Moon], ["system", "Auto", Monitor]] as [ThemePref, string, typeof Sun][]).map(([v, l, Icon]) => (
+                      <button key={v} role="radio" aria-checked={theme === v} title={v === "system" ? "Match this device" : `${l} mode`} onClick={() => setTheme(v)}
+                        className={cx("flex flex-col items-center gap-0.5 rounded-md py-1.5 text-[11px] font-semibold", theme === v ? "bg-white text-ink shadow-card" : "text-slate-500 hover:text-ink")}>
+                        <Icon className="size-4" />{l}
+                      </button>
+                    ))}
+                  </div>
+                </div>
                 <button className="flex w-full items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50" onClick={signOut}>
                   <LogOut className="size-4" /> Sign out
                 </button>

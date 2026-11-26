@@ -12,10 +12,10 @@ export function cx(...xs: (string | false | null | undefined)[]) {
 
 type Variant = "primary" | "secondary" | "ghost" | "danger";
 const VARIANT: Record<Variant, string> = {
-  primary: "bg-cta text-white hover:bg-cta-hover shadow-sm shadow-cta/30",
+  primary: "bg-cta text-on-accent hover:bg-cta-hover shadow-sm shadow-cta/30",
   secondary: "bg-white text-slate-700 ring-1 ring-line hover:bg-slate-50 hover:ring-slate-300 shadow-card",
   ghost: "text-slate-600 hover:bg-slate-100",
-  danger: "bg-red-600 text-white hover:bg-red-700 shadow-sm",
+  danger: "bg-red-600 text-on-accent hover:bg-red-700 shadow-sm",
 };
 
 export const Button = forwardRef<HTMLButtonElement, ButtonHTMLAttributes<HTMLButtonElement> & {
@@ -84,7 +84,7 @@ export function Avatar({ person, size = 28, ring }: { person?: Profile | null; s
   const name = person?.full_name || person?.username || "Unassigned";
   return (
     <span title={name}
-      className={cx("inline-flex shrink-0 items-center justify-center rounded-full font-semibold text-white select-none", ring && "ring-2 ring-white",
+      className={cx("inline-flex shrink-0 items-center justify-center rounded-full font-semibold text-on-accent select-none", ring && "ring-2 ring-white",
         !person && "bg-slate-200 text-slate-400")}
       style={{ width: size, height: size, fontSize: Math.max(10, size * 0.38), background: person ? person.color : undefined }}>
       {person ? initials(name) : "–"}
@@ -116,7 +116,7 @@ export function Modal({ open, onClose, title, children, footer, wide }: {
   }, [open, onClose]);
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-[60] flex items-end justify-center bg-ink/30 p-0 backdrop-blur-[2px] sm:items-center sm:p-4" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+    <div className="fixed inset-0 z-[60] flex items-end justify-center bg-scrim/40 p-0 backdrop-blur-[2px] sm:items-center sm:p-4" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <div role="dialog" aria-modal="true" aria-label={title}
         className={cx("flex max-h-[92vh] w-full flex-col rounded-t-2xl bg-white shadow-pop sm:rounded-2xl", wide === "xl" ? "sm:max-w-4xl" : wide ? "sm:max-w-2xl" : "sm:max-w-lg")}>
         <div className="flex items-center justify-between border-b border-line-soft px-5 py-3.5">
