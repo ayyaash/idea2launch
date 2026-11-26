@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { addDays, differenceInCalendarDays, eachWeekOfInterval, format, max as maxDate, min as minDate, startOfDay } from "date-fns";
 import { List, KanbanSquare, GanttChart, Users, Pencil, Trash2, Download, ArrowLeft, CalendarRange, X, Lock, ChevronRight, Copy as CopyIcon, GripVertical } from "lucide-react";
@@ -378,9 +378,32 @@ function BoardView({ projectId, tasks, canEdit, canAdd }: { projectId: string; t
 }
 
 /* ------------------------------ Timeline ------------------------------ */
+const ROW_H = 34;
 function TimelineView({ tasks }: { tasks: Task[] }) {
   const store = useStore();
   const openTask = useOpenTask();
+  const [showLinks, setShowLinks] = useState(() => { try { return localStorage.getItem("i2l.timelineLinks") !== "off"; } catch { return true; } });
+  const [hover, setHover] = useState<string | null>(null);
+  const track = useRef<HTMLDivElement>(null);
+  const scroller = useRef<HTMLDivElement>(null);
+  const scrolled = useRef(false);
+  const target = useRef(0);
+  const [trackW, setTrackW] = useState(0);
+  useEffect(() => {
+    const el = track.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => setTrackW(el.clientWidth));
+    ro.observe(el);
+    setTrackW(el.clientWidth);
+    return () => ro.disconnect();
+  });
+  // open the timeline at this week, not at the earliest task
+  useEffect(() => {
+    if (scrolled.current || !trackW || !scroller.current) return;
+    scrolled.current = true;
+    scroller.current.scrollLeft = Math.max(0, target.current);
+  }, [trackW]);
+
   const dated = tasks.filter((t) => t.start_date || t.due_date)
     .sort((a, b) => ((a.start_date ?? a.due_date)!).localeCompare((b.start_date ?? b.due_date)!));
   const undated = tasks.filter((t) => !t.start_date && !t.due_date);
@@ -398,42 +421,101 @@ function TimelineView({ tasks }: { tasks: Task[] }) {
   const pos = (d: Date) => (differenceInCalendarDays(d, first) / totalDays) * 100;
   const DAY_W = 18;
 
+  const rowOf = new Map(dated.map((t, i) => [t.id, i]));
+  const span = (t: Task) => ({ s: toDate(t.start_date ?? t.due_date)!, e: toDate(t.due_date ?? t.start_date)! });
+  const preds = (id: string) => store.dependencies.filter((d) => d.task_id === id).map((d) => store.taskById.get(d.depends_on_id)).filter(Boolean) as Task[];
+  const isLocked = (t: Task) => t.status !== "done" && preds(t.id).some((p) => p.status !== "done");
+  // arrows between tasks shown on this timeline
+  const links = store.dependencies.filter((d) => rowOf.has(d.task_id) && rowOf.has(d.depends_on_id)).map((d) => {
+    const from = store.taskById.get(d.depends_on_id)!;
+    const to = store.taskById.get(d.task_id)!;
+    const late = from.status !== "done" && to.status !== "done" && span(to).s <= span(from).e;
+    return { key: `${d.depends_on_id}-${d.task_id}`, from, to, late };
+  });
+  const px = (d: Date) => (pos(d) / 100) * trackW;
+  target.current = px(addDays(today(), -7));
+  const hoverSet = hover ? new Set([hover, ...links.filter((l) => l.from.id === hover || l.to.id === hover).flatMap((l) => [l.from.id, l.to.id])]) : null;
+
   return (
     <Card className="overflow-hidden">
-      <div className="overflow-x-auto scroll-thin">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-slate-200 px-4 py-2 text-xs text-slate-500">
+        <label className="flex items-center gap-1.5 text-sm text-slate-700">
+          <input type="checkbox" className="size-4 accent-brand-500" checked={showLinks}
+            onChange={(e) => { setShowLinks(e.target.checked); try { localStorage.setItem("i2l.timelineLinks", e.target.checked ? "on" : "off"); } catch { /* ignore */ } }} />
+          Show predecessor links
+        </label>
+        {showLinks && links.length > 0 && <>
+          <span className="flex items-center gap-1"><svg width="22" height="8"><path d="M0 4h16" stroke="#475569" strokeWidth="1.6" /><path d="M15 0l6 4-6 4z" fill="#475569" /></svg>predecessor → task that waits</span>
+          <span className="flex items-center gap-1 text-red-600"><svg width="22" height="8"><path d="M0 4h16" stroke="#ef4444" strokeWidth="1.8" strokeDasharray="4 3" /><path d="M15 0l6 4-6 4z" fill="#ef4444" /></svg>starts before its predecessor ends</span>
+        </>}
+        <span className="flex items-center gap-1"><span className="inline-block h-3 w-5 rounded-sm bg-stripes" /><Lock className="size-3" /> locked until predecessors are Done</span>
+      </div>
+      <div ref={scroller} className="overflow-x-auto scroll-thin">
         <div style={{ minWidth: 260 + totalDays * DAY_W }}>
           <div className="grid grid-cols-[260px_1fr] border-b border-slate-200 bg-slate-50 text-xs text-slate-500">
-            <div className="px-4 py-2 font-medium">Task</div>
+            <div className="sticky left-0 z-[4] border-r border-slate-200 bg-slate-50 px-4 py-2 font-medium">Task</div>
             <div className="relative h-8">
               {weeks.map((w) => (
                 <div key={w.toISOString()} className="absolute inset-y-0 border-l border-slate-200 pl-1.5 leading-8" style={{ left: `${pos(w)}%` }}>{format(w, "d MMM")}</div>
               ))}
             </div>
           </div>
-          {dated.map((t) => {
-            const s = toDate(t.start_date ?? t.due_date)!;
-            const e = toDate(t.due_date ?? t.start_date)!;
-            const owner = t.owner_id ? store.profileById.get(t.owner_id) : undefined;
-            const late = t.status !== "done" && e < today();
-            return (
-              <div key={t.id} className="grid grid-cols-[260px_1fr] border-b border-slate-100 hover:bg-slate-50">
-                <button onClick={() => openTask(t.id)} className="flex min-w-0 items-center gap-2 px-4 py-1.5 text-left">
-                  <span className={cx("size-2 shrink-0 rounded-full", TASK_STATUS_DOT[t.status])} />
-                  <span className={cx("truncate text-sm", t.parent_id && "pl-3 text-slate-600")}>{t.title}</span>
-                </button>
-                <div className="relative">
-                  {weeks.map((w) => <div key={w.toISOString()} className="absolute inset-y-0 border-l border-slate-100" style={{ left: `${pos(w)}%` }} />)}
-                  <div className="absolute inset-y-0 w-px bg-brand-500/70" style={{ left: `${pos(today())}%` }} />
-                  <button onClick={() => openTask(t.id)} title={`${t.title}: ${fmtDate(t.start_date) || "?"} → ${fmtDate(t.due_date) || "?"}`}
-                    className={cx("absolute top-1/2 flex h-5 -translate-y-1/2 items-center gap-1 overflow-hidden rounded-md px-1 text-[11px] font-medium text-white",
-                      t.status === "done" ? "bg-emerald-500" : late ? "bg-red-500" : t.status === "in_progress" ? "bg-blue-500" : t.status === "review" ? "bg-violet-500" : "bg-navy-400")}
-                    style={{ left: `${pos(s)}%`, width: `max(${((differenceInCalendarDays(e, s) + 1) / totalDays) * 100}%, 8px)` }}>
-                    {owner && <Avatar person={owner} size={14} />}
+          <div className="relative">
+            {dated.map((t) => {
+              const { s, e } = span(t);
+              const owner = t.owner_id ? store.profileById.get(t.owner_id) : undefined;
+              const late = t.status !== "done" && e < today();
+              const locked = isLocked(t);
+              const waits = preds(t.id);
+              const dim = hoverSet && !hoverSet.has(t.id);
+              return (
+                <div key={t.id} className="grid grid-cols-[260px_1fr] border-b border-slate-100 hover:bg-slate-50" style={{ height: ROW_H }}
+                  onMouseEnter={() => setHover(t.id)} onMouseLeave={() => setHover(null)}>
+                  <button onClick={() => openTask(t.id)} className="sticky left-0 z-[4] flex min-w-0 items-center gap-2 border-r border-slate-200 bg-white px-4 text-left">
+                    {locked ? <Lock className="size-3 shrink-0 text-red-500" /> : <span className={cx("size-2 shrink-0 rounded-full", TASK_STATUS_DOT[t.status])} />}
+                    <span className={cx("truncate text-sm", t.parent_id && "pl-3 text-slate-600", dim && "opacity-50")}>{t.title}</span>
                   </button>
+                  <div className="relative" ref={t.id === dated[0].id ? track : undefined}>
+                    {weeks.map((w) => <div key={w.toISOString()} className="absolute inset-y-0 border-l border-slate-100" style={{ left: `${pos(w)}%` }} />)}
+                    <div className="absolute inset-y-0 w-px bg-brand-500/70" style={{ left: `${pos(today())}%` }} />
+                    <button onClick={() => openTask(t.id)}
+                      title={`${t.title}: ${fmtDate(t.start_date) || "?"} → ${fmtDate(t.due_date) || "?"}${waits.length ? `\nWaits on: ${waits.map((p) => `${p.title}${p.status === "done" ? " (done)" : p.due_date ? ` (due ${fmtDate(p.due_date)})` : ""}`).join(", ")}` : ""}`}
+                      className={cx("absolute top-1/2 z-[1] flex h-5 -translate-y-1/2 items-center gap-1 overflow-hidden rounded-md px-1 text-[11px] font-medium text-white transition-opacity",
+                        locked ? "bg-stripes text-slate-700" : t.status === "done" ? "bg-emerald-500" : late ? "bg-red-500" : t.status === "in_progress" ? "bg-blue-500" : t.status === "review" ? "bg-violet-500" : "bg-navy-400",
+                        showLinks && links.some((l) => l.late && l.to.id === t.id) && "ring-2 ring-red-500",
+                        dim && "opacity-40")}
+                      style={{ left: `${pos(s)}%`, width: `max(${((differenceInCalendarDays(e, s) + 1) / totalDays) * 100}%, 8px)` }}>
+                      {owner && <Avatar person={owner} size={14} />}
+                    </button>
+                  </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
+            {showLinks && trackW > 0 && links.length > 0 && (
+              <svg className="pointer-events-none absolute top-0 z-[2] overflow-visible" style={{ left: 260, width: trackW, height: dated.length * ROW_H }}>
+                <defs>
+                  <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0L10,5L0,10z" fill="#475569" /></marker>
+                  <marker id="arr-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0L10,5L0,10z" fill="#ef4444" /></marker>
+                  <marker id="arr-hi" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0L10,5L0,10z" fill="#ea580c" /></marker>
+                </defs>
+                {links.map((l) => {
+                  const r1 = rowOf.get(l.from.id)!, r2 = rowOf.get(l.to.id)!;
+                  const x1 = px(addDays(span(l.from).e, 1)), y1 = r1 * ROW_H + ROW_H / 2;
+                  const x2 = px(span(l.to).s), y2 = r2 * ROW_H + ROW_H / 2;
+                  const down = y2 > y1 ? 1 : -1;
+                  const d = x2 - 8 >= x1 + 6
+                    ? `M${x1},${y1} H${x1 + 6} V${y2} H${x2}`
+                    : `M${x1},${y1} H${x1 + 6} V${y2 - down * (ROW_H / 2)} H${x2 - 10} V${y2} H${x2}`;
+                  const hi = hover && (l.from.id === hover || l.to.id === hover);
+                  const faded = hover && !hi;
+                  return <path key={l.key} d={d} fill="none" strokeLinejoin="round"
+                    stroke={hi ? "#ea580c" : l.late ? "#ef4444" : "#475569"} strokeWidth={hi ? 2.2 : l.late ? 1.8 : 1.5}
+                    strokeDasharray={l.late && !hi ? "4 3" : undefined} opacity={faded ? 0.25 : 1}
+                    markerEnd={`url(#${hi ? "arr-hi" : l.late ? "arr-red" : "arr"})`} />;
+                })}
+              </svg>
+            )}
+          </div>
         </div>
       </div>
       {undated.length > 0 && <p className="border-t border-slate-200 px-4 py-2 text-xs text-slate-500">{undated.length} task(s) without dates are not shown.</p>}

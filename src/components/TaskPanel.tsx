@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
-  X, Copy, Trash2, CheckCircle2, Circle, Paperclip, Download, Link2, MessageSquare, ListTree, Lock, ArrowRight, Plus, MoreHorizontal,
+  X, Copy, Trash2, CheckCircle2, Circle, Paperclip, Download, Link2, MessageSquare, ListTree, Lock, ArrowRight, Plus, MoreHorizontal, Search, AlertTriangle,
 } from "lucide-react";
 import { useStore } from "../lib/store";
 import { useAuth } from "../lib/auth";
@@ -9,7 +9,8 @@ import { supabase, errorText } from "../lib/supabase";
 import {
   PRIORITIES, PRIORITY_LABEL, TASK_STATUSES, TASK_STATUS_LABEL, TASK_STATUS_DOT, fmtBytes, fmtDate, timeAgo, dueLabel,
 } from "../lib/format";
-import { canDeleteTask, canEditProject, canContribute, isManager } from "../lib/perms";
+import { canApprove, canDeleteTask, canEditProject, canContribute, isManager } from "../lib/perms";
+import { addDays, differenceInCalendarDays, format, parseISO } from "date-fns";
 import type { Attachment, Comment, Task, TaskStatus } from "../lib/types";
 import { Avatar, Button, IconButton, Input, Select, Textarea, cx, useConfirm } from "./ui";
 import { PeoplePicker, PersonChip, PersonSelect } from "./pickers";
@@ -38,27 +39,37 @@ export function useOpenTask() {
   }, [params, setParams]);
 }
 
-/** Ask before starting a task whose dependencies are not done yet. */
+/**
+ * A task is locked until its predecessors are Done: it can't be started, sent for review or
+ * completed. Project Coordinators, Managers and Admins can unlock it after confirming.
+ */
 export function useStatusChange() {
   const store = useStore();
+  const { me } = useAuth();
+  const toast = useToast();
   const confirm = useConfirm();
   return useCallback(async (task: Task, status: TaskStatus) => {
-    if (task.status === "todo" && status !== "todo") {
+    if (status !== "todo" && status !== task.status) {
       const blockers = store.dependencies
         .filter((d) => d.task_id === task.id)
         .map((d) => store.taskById.get(d.depends_on_id))
         .filter((t): t is Task => !!t && t.status !== "done");
       if (blockers.length) {
+        const list = blockers.map((b) => `"${b.title}"`).join(", ");
+        if (!canApprove(me)) {
+          toast.error(`This task is locked until ${list} ${blockers.length > 1 ? "are" : "is"} Done. A Project Coordinator, Manager or Admin can unlock it.`);
+          return false;
+        }
         const ok = await confirm({
-          title: "This task is waiting on other work",
-          text: `${blockers.map((b) => `"${b.title}"`).join(", ")} ${blockers.length > 1 ? "are" : "is"} not done yet. Start this task anyway?`,
-          confirm: "Start anyway",
+          title: "Unlock this task?",
+          text: `${list} ${blockers.length > 1 ? "are" : "is"} not Done yet, so this task is locked. You can unlock it and continue anyway.`,
+          confirm: "Unlock and continue",
         });
         if (!ok) return false;
       }
     }
     return store.patchTask(task.id, { status });
-  }, [store, confirm]);
+  }, [store, me, toast, confirm]);
 }
 
 function TaskPanel({ taskId, onClose }: { taskId: string; onClose: () => void }) {
@@ -175,12 +186,16 @@ function TaskPanel({ taskId, onClose }: { taskId: string; onClose: () => void })
 
         <EditableTitle value={task.title} disabled={!canEdit} onSave={(title) => patch({ title })} done={done} />
 
-        {blocked && !done && (
-          <div className="mt-2 flex items-start gap-2 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900 ring-1 ring-amber-200">
-            <Lock className="mt-0.5 size-4 shrink-0" />
-            <span>Waiting on {waitingOn.filter((t) => t.status !== "done").map((t) => `"${t.title}"`).join(", ")} before this can start.</span>
-          </div>
-        )}
+        {blocked && !done && (() => {
+          const pending = waitingOn.filter((t) => t.status !== "done");
+          return (
+            <div className="mt-2 flex items-start gap-2 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-800 ring-1 ring-red-200">
+              <Lock className="mt-0.5 size-4 shrink-0" />
+              <span><b>Waiting on {pending.length} predecessor{pending.length === 1 ? "" : "s"}.</b> {pending.map((t) => `"${t.title}"`).join(", ")} must be Done before this task can start or be completed.
+                {canApprove(me) ? " You can unlock it by changing the status." : " A Project Coordinator, Manager or Admin can unlock it."}</span>
+            </div>
+          );
+        })()}
         {!canEdit && (
           <p className="mt-2 rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-500 ring-1 ring-slate-200">
             You can view this task. Only people assigned to this project can change it.
@@ -252,7 +267,7 @@ function TaskPanel({ taskId, onClose }: { taskId: string; onClose: () => void })
             {subtasks.map((s) => (
               <li key={s.id} className="flex items-center gap-2 px-2.5 py-1.5">
                 <button aria-label={s.status === "done" ? "Mark not done" : "Mark done"} disabled={!canEdit}
-                  onClick={() => store.patchTask(s.id, { status: s.status === "done" ? "todo" : "done" })}>
+                  onClick={() => changeStatus(s, s.status === "done" ? "todo" : "done")}>
                   {s.status === "done" ? <CheckCircle2 className="size-[18px] text-emerald-600" /> : <Circle className="size-[18px] text-slate-400 hover:text-emerald-600" />}
                 </button>
                 <button className={cx("flex-1 truncate text-left text-sm hover:text-brand-600", s.status === "done" && "text-slate-400 line-through")}
@@ -273,7 +288,7 @@ function TaskPanel({ taskId, onClose }: { taskId: string; onClose: () => void })
 
 
         {/* dependencies */}
-        <Section title="Dependencies" icon={<Link2 className="size-4" />}>
+        <Section title="Predecessors" icon={<Link2 className="size-4" />}>
           <DependencyEditor task={task} waitingOn={waitingOn} blocking={blocking} canEdit={canEdit} />
         </Section>
 
@@ -420,52 +435,163 @@ function DependencyEditor({ task, waitingOn, blocking, canEdit }: { task: Task; 
   const store = useStore();
   const openTask = useOpenTask();
   const [adding, setAdding] = useState(false);
-  const candidates = useMemo(() => store.tasks.filter((t) => t.project_id === task.project_id && t.id !== task.id
-    && !waitingOn.some((w) => w.id === t.id) && t.parent_id !== task.id), [store.tasks, task, waitingOn]);
-  const Row = ({ t, onRemove }: { t: Task; onRemove?: () => void }) => (
-    <li className="flex items-center gap-2 px-2.5 py-1.5 text-sm">
-      <span className={cx("size-2 rounded-full", TASK_STATUS_DOT[t.status])} title={TASK_STATUS_LABEL[t.status]} />
-      <button className={cx("flex-1 truncate text-left hover:text-brand-600", t.status === "done" && "text-slate-400 line-through")} onClick={() => openTask(t.id)}>{t.title}</button>
-      <span className="text-xs text-slate-500">{TASK_STATUS_LABEL[t.status]}</span>
-      {onRemove && <button aria-label="Remove dependency" className="text-slate-400 hover:text-red-600" onClick={onRemove}><X className="size-3.5" /></button>}
-    </li>
-  );
+  const Row = ({ t, onRemove }: { t: Task; onRemove?: () => void }) => {
+    const proj = t.project_id !== task.project_id ? store.projectById.get(t.project_id) : undefined;
+    return (
+      <li className="flex items-center gap-2 px-2.5 py-1.5 text-sm">
+        <span className={cx("size-2 shrink-0 rounded-full", TASK_STATUS_DOT[t.status])} title={TASK_STATUS_LABEL[t.status]} />
+        <button className={cx("min-w-0 flex-1 truncate text-left hover:text-brand-600", t.status === "done" && "text-slate-400 line-through")} onClick={() => openTask(t.id)}>
+          {proj && <span className="text-slate-500">{proj.code} · </span>}{t.title}
+        </button>
+        <span className="shrink-0 text-xs text-slate-500">{TASK_STATUS_LABEL[t.status]}{t.due_date && t.status !== "done" ? ` · due ${fmtDate(t.due_date)}` : ""}</span>
+        {onRemove && <button aria-label="Remove predecessor" className="shrink-0 text-slate-400 hover:text-red-600" onClick={onRemove}><X className="size-3.5" /></button>}
+      </li>
+    );
+  };
+
+  // A task can't start before its predecessors are due to end.
+  const latest = waitingOn.filter((t) => t.status !== "done" && t.due_date).map((t) => t.due_date!).sort().pop();
+  const start = task.start_date ?? task.due_date;
+  const conflict = task.status !== "done" && latest && start && start <= latest;
+  async function moveAfter() {
+    if (!latest || !start) return;
+    const newStart = format(addDays(parseISO(latest), 1), "yyyy-MM-dd");
+    const shift = differenceInCalendarDays(parseISO(newStart), parseISO(start));
+    const patch: Partial<Task> = {};
+    if (task.start_date) patch.start_date = newStart;
+    if (task.due_date) patch.due_date = format(addDays(parseISO(task.due_date), shift), "yyyy-MM-dd");
+    await store.patchTask(task.id, patch);
+  }
+
   return (
     <div className="space-y-3">
       <div>
-        <p className="mb-1 text-xs font-medium text-slate-600">Waiting on (must finish first)</p>
-        <ul className="divide-y divide-slate-100 rounded-lg ring-1 ring-slate-200">
+        <p className="mb-1 text-xs font-medium text-slate-600">Must be Done before this task can start</p>
+        <ul className="rounded-lg ring-1 ring-slate-200 [&>li+li]:border-t [&>li+li]:border-slate-100">
           {waitingOn.map((t) => (
             <Row key={t.id} t={t} onRemove={canEdit ? () => store.mutate(() => supabase.from("task_dependencies").delete().match({ task_id: task.id, depends_on_id: t.id })) : undefined} />
           ))}
-          {waitingOn.length === 0 && !adding && <li className="px-2.5 py-1.5 text-sm text-slate-400">Nothing</li>}
+          {waitingOn.length === 0 && !adding && <li className="px-2.5 py-1.5 text-sm text-slate-400">No predecessors</li>}
           {canEdit && (
             <li className="px-2.5 py-1.5">
               {adding ? (
-                <Select autoFocus aria-label="Choose a task this one waits on" defaultValue="" onBlur={() => setAdding(false)}
-                  onChange={async (e) => {
-                    if (!e.target.value) return;
-                    await store.mutate(() => supabase.from("task_dependencies").insert({ task_id: task.id, depends_on_id: e.target.value }));
+                <PredecessorPicker task={task} exclude={waitingOn.map((t) => t.id)} onClose={() => setAdding(false)}
+                  onPick={async (id) => {
                     setAdding(false);
-                  }}>
-                  <option value="">Choose a task in this project…</option>
-                  {candidates.map((t) => <option key={t.id} value={t.id}>{t.title}</option>)}
-                </Select>
+                    await store.mutate(() => supabase.from("task_dependencies").insert({ task_id: task.id, depends_on_id: id }), { success: "Predecessor added" });
+                  }} />
               ) : (
-                <button onClick={() => setAdding(true)} className="flex items-center gap-1 text-sm text-slate-500 hover:text-brand-600">
-                  <Plus className="size-4" /> Add a task this one waits on
+                <button onClick={() => setAdding(true)} className="flex items-center gap-1 text-sm text-brand-600 hover:text-brand-700">
+                  <Plus className="size-4" /> Add predecessor
                 </button>
               )}
             </li>
           )}
         </ul>
+        {conflict && (
+          <div className="mt-2 flex items-start gap-2 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900 ring-1 ring-amber-200">
+            <AlertTriangle className="mt-0.5 size-4 shrink-0" />
+            <span>This task starts on <b>{fmtDate(start)}</b>, but a predecessor is due on <b>{fmtDate(latest)}</b>.
+              {canEdit && <> <button className="font-medium underline hover:text-amber-700" onClick={moveAfter}>Move this task to start {fmtDate(format(addDays(parseISO(latest), 1), "yyyy-MM-dd"))}</button></>}</span>
+          </div>
+        )}
       </div>
       {blocking.length > 0 && (
         <div>
-          <p className="mb-1 text-xs font-medium text-slate-600">Blocking (waiting on this task)</p>
-          <ul className="divide-y divide-slate-100 rounded-lg ring-1 ring-slate-200">{blocking.map((t) => <Row key={t.id} t={t} />)}</ul>
+          <p className="mb-1 text-xs font-medium text-slate-600">Waiting on this task</p>
+          <ul className="rounded-lg ring-1 ring-slate-200 [&>li+li]:border-t [&>li+li]:border-slate-100">{blocking.map((t) => <Row key={t.id} t={t} />)}</ul>
         </div>
       )}
+    </div>
+  );
+}
+
+/** Search box with this project's tasks. Subtasks sit under their main task. */
+function PredecessorPicker({ task, exclude, onPick, onClose }: { task: Task; exclude: string[]; onPick: (id: string) => void; onClose: () => void }) {
+  const store = useStore();
+  const [q, setQ] = useState("");
+  const [hi, setHi] = useState(0);
+  const box = useRef<HTMLDivElement>(null);
+  useEffect(() => { box.current?.scrollIntoView({ block: "nearest", behavior: "smooth" }); }, []);
+  useEffect(() => {
+    const out = (e: MouseEvent) => { if (box.current && !box.current.contains(e.target as Node)) onClose(); };
+    document.addEventListener("mousedown", out);
+    return () => document.removeEventListener("mousedown", out);
+  }, [onClose]);
+
+  const groups = useMemo(() => {
+    const skip = new Set([task.id, ...exclude, ...(task.parent_id ? [task.parent_id] : [])]);
+    const needle = q.trim().toLowerCase();
+    const byProject = new Map<string, Task[]>();
+    for (const t of store.tasks) {
+      if (t.project_id !== task.project_id || skip.has(t.id) || t.parent_id === task.id) continue;
+      if (!byProject.has(t.project_id)) byProject.set(t.project_id, []);
+      byProject.get(t.project_id)!.push(t);
+    }
+    const order = [...byProject.keys()].sort((a, b) => (a === task.project_id ? -1 : b === task.project_id ? 1
+      : (store.projectById.get(a)?.code ?? "").localeCompare(store.projectById.get(b)?.code ?? "")));
+    const out: { project: string; label: string; rows: { t: Task; sub: boolean }[] }[] = [];
+    for (const pid of order) {
+      const proj = store.projectById.get(pid);
+      const list = byProject.get(pid)!;
+      const ordered: { t: Task; sub: boolean }[] = [];
+      for (const m of list.filter((t) => !t.parent_id)) {
+        ordered.push({ t: m, sub: false });
+        for (const sub of list.filter((t) => t.parent_id === m.id)) ordered.push({ t: sub, sub: true });
+      }
+      for (const orphan of list.filter((t) => t.parent_id && !list.some((m) => m.id === t.parent_id))) ordered.push({ t: orphan, sub: true });
+      const rows = needle
+        ? ordered.filter(({ t }) => t.title.toLowerCase().includes(needle) || (proj?.code ?? "").toLowerCase().includes(needle) || (proj?.name ?? "").toLowerCase().includes(needle))
+        : ordered;
+      if (rows.length) out.push({ project: pid, label: `${proj?.code ?? ""} · ${proj?.name ?? ""}`, rows });
+    }
+    return out;
+  }, [store.tasks, store.projectById, task, exclude, q]);
+  const flat = groups.flatMap((g) => g.rows.map((r) => r.t));
+  const shown = Math.min(flat.length, 200);
+
+  const mark = (text: string) => {
+    const n = q.trim();
+    const i = n ? text.toLowerCase().indexOf(n.toLowerCase()) : -1;
+    return i < 0 ? text : <>{text.slice(0, i)}<b className="text-slate-900">{text.slice(i, i + n.length)}</b>{text.slice(i + n.length)}</>;
+  };
+  let idx = -1;
+  return (
+    <div ref={box} className="rounded-lg bg-white shadow-lg ring-1 ring-slate-300">
+      <div className="flex items-center gap-2 border-b border-slate-200 px-2.5">
+        <Search className="size-4 text-slate-400" />
+        <input autoFocus aria-label="Search tasks" value={q} placeholder="Search this project's tasks…"
+          className="h-9 flex-1 bg-transparent text-sm outline-none"
+          onChange={(e) => { setQ(e.target.value); setHi(0); }}
+          onKeyDown={(e) => {
+            if (e.key === "ArrowDown") { e.preventDefault(); setHi((h) => Math.min(h + 1, shown - 1)); }
+            else if (e.key === "ArrowUp") { e.preventDefault(); setHi((h) => Math.max(h - 1, 0)); }
+            else if (e.key === "Enter" && flat[hi]) { e.preventDefault(); onPick(flat[hi].id); }
+            else if (e.key === "Escape") onClose();
+          }} />
+        <button aria-label="Close" className="text-slate-400 hover:text-slate-700" onClick={onClose}><X className="size-4" /></button>
+      </div>
+      <div className="max-h-72 overflow-y-auto py-1 scroll-thin" role="listbox">
+        {groups.map((g) => (
+          <div key={g.project}>
+            <p className="truncate px-2.5 pt-2 pb-0.5 text-[11px] font-medium tracking-wide text-slate-400 uppercase">{g.label}</p>
+            {g.rows.map(({ t, sub }) => {
+              idx++;
+              if (idx >= 200) return null;
+              const i = idx;
+              return (
+                <button key={t.id} role="option" aria-selected={i === hi} onMouseEnter={() => setHi(i)} onClick={() => onPick(t.id)}
+                  className={cx("flex w-full items-center gap-2 py-1.5 pr-2.5 text-left text-sm", sub ? "pl-7" : "pl-2.5", i === hi && "bg-brand-50")}>
+                  <span className={cx("size-2 shrink-0 rounded-full", TASK_STATUS_DOT[t.status])} />
+                  <span className={cx("min-w-0 flex-1 truncate text-slate-700", t.status === "done" && "text-slate-400")}>{mark(t.title)}</span>
+                  <span className="shrink-0 text-xs text-slate-400">{sub ? "subtask · " : ""}{TASK_STATUS_LABEL[t.status]}{t.due_date ? ` · ${fmtDate(t.due_date)}` : ""}</span>
+                </button>
+              );
+            })}
+          </div>
+        ))}
+        {flat.length === 0 && <p className="px-3 py-3 text-sm text-slate-500">No tasks match "{q}".</p>}
+      </div>
     </div>
   );
 }

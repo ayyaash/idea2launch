@@ -427,3 +427,27 @@ test("copy a project as a template", async () => {
   assert.equal(ok(await people.max.from("projects").select("approval").eq("id", mine).single()).approval, "pending");
   assert.ok((await people.val.rpc("copy_project", { p_project: src.id, p_code: "CV-" + run, p_name: "No" })).error);
 });
+
+test("predecessors lock a task until they are done; coordinators and up can unlock", async () => {
+  const pr = ok(await people.mia.from("projects").insert({ code: "PRE-" + run, name: "Predecessors" }).select().single());
+  ok(await people.mia.from("project_members").insert({ project_id: pr.id, user_id: ids.nia }));
+  const first = ok(await people.mia.from("tasks").insert({ project_id: pr.id, title: "First" }).select().single());
+  const next = ok(await people.mia.from("tasks").insert({ project_id: pr.id, title: "Next" }).select().single());
+  ok(await people.nia.from("task_dependencies").insert({ task_id: next.id, depends_on_id: first.id }));
+  // a member can't start or complete it while "First" is open
+  for (const status of ["in_progress", "review", "done"]) {
+    assert.match((await people.nia.from("tasks").update({ status }).eq("id", next.id)).error?.message ?? "", /locked until its predecessors are done: "First"/);
+  }
+  // other changes still work
+  ok(await people.nia.from("tasks").update({ title: "Next step" }).eq("id", next.id));
+  // a manager can unlock it
+  ok(await people.mia.from("tasks").update({ status: "in_progress" }).eq("id", next.id));
+  ok(await people.mia.from("tasks").update({ status: "todo" }).eq("id", next.id));
+  // once "First" is done the member can go ahead
+  ok(await people.nia.from("tasks").update({ status: "done" }).eq("id", first.id));
+  ok(await people.nia.from("tasks").update({ status: "in_progress" }).eq("id", next.id));
+  // a predecessor must be in the same project
+  const other = ok(await people.mia.from("projects").insert({ code: "PRO-" + run, name: "Other" }).select().single());
+  const ext = ok(await people.mia.from("tasks").insert({ project_id: other.id, title: "Elsewhere" }).select().single());
+  assert.match((await people.mia.from("task_dependencies").insert({ task_id: next.id, depends_on_id: ext.id })).error?.message ?? "", /same project/);
+});
