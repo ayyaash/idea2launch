@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { addDays, differenceInCalendarDays, eachWeekOfInterval, format, max as maxDate, min as minDate, startOfDay } from "date-fns";
-import { List, KanbanSquare, GanttChart, Users, Pencil, Trash2, Download, ArrowLeft, CalendarRange, X, Lock, ChevronRight, Copy as CopyIcon, GripVertical } from "lucide-react";
+import { List, KanbanSquare, GanttChart, Users, Pencil, Trash2, Download, ArrowLeft, CalendarRange, X, Lock, ChevronRight, Copy as CopyIcon, GripVertical, Upload } from "lucide-react";
 import { useStore } from "../lib/store";
 import { useAuth } from "../lib/auth";
 import { supabase } from "../lib/supabase";
@@ -17,6 +17,7 @@ import type { Priority, ProjectStatus, Section, Task, TaskStatus } from "../lib/
 import { Avatar, Button, Card, EmptyState, IconButton, Pill, Select, Spinner, Tabs, cx, useConfirm } from "../components/ui";
 import { ProjectForm } from "../components/ProjectForm";
 import { CopyProjectModal } from "../components/CopyProjectModal";
+import { ImportTasksModal } from "../components/ImportTasksModal";
 import { TaskRow, TaskTableHeader } from "../components/TaskRow";
 import { DueBadge, QuickAdd, useOpenTask, useStatusChange } from "../components/TaskPanel";
 import { PeoplePicker } from "../components/pickers";
@@ -34,6 +35,7 @@ export default function ProjectPage() {
   const setView = (v: View) => { const p = new URLSearchParams(params); p.set("view", v); p.delete("task"); setParams(p, { replace: true }); };
   const [editOpen, setEditOpen] = useState(false);
   const [copyOpen, setCopyOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   const [ownerFilter, setOwnerFilter] = useState("");
   const [prioFilter, setPrioFilter] = useState<"" | Priority>("");
   const [hideDone, setHideDone] = useState(false);
@@ -99,6 +101,7 @@ export default function ProjectPage() {
           {project.description && <p className="mt-3 max-w-3xl text-sm whitespace-pre-wrap text-slate-600">{project.description}</p>}
         </div>
         <div className="flex gap-2">
+          {canAdd && <Button icon={<Upload className="size-4" />} onClick={() => setImportOpen(true)}>Import</Button>}
           <Button icon={<Download className="size-4" />} onClick={() => exportToExcel(`${project.code}.xlsx`, [project], allTasks, store)}>Excel</Button>
           {canContribute(me) && <Button icon={<CopyIcon className="size-4" />} onClick={() => setCopyOpen(true)}>Copy</Button>}
           {canManage && <Button icon={<Pencil className="size-4" />} onClick={() => setEditOpen(true)}>Edit</Button>}
@@ -140,6 +143,7 @@ export default function ProjectPage() {
 
       <ProjectForm open={editOpen} onClose={() => setEditOpen(false)} project={project} />
       <CopyProjectModal open={copyOpen} onClose={() => setCopyOpen(false)} project={project} />
+      <ImportTasksModal open={importOpen} onClose={() => setImportOpen(false)} project={project} />
     </div>
   );
 }

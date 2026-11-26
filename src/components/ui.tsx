@@ -102,7 +102,7 @@ export function AvatarStack({ people, max = 4, size = 24 }: { people: (Profile |
 }
 
 export function Modal({ open, onClose, title, children, footer, wide }: {
-  open: boolean; onClose: () => void; title: string; children: ReactNode; footer?: ReactNode; wide?: boolean;
+  open: boolean; onClose: () => void; title: string; children: ReactNode; footer?: ReactNode; wide?: boolean | "xl";
 }) {
   useEffect(() => {
     if (!open) return;
@@ -114,7 +114,7 @@ export function Modal({ open, onClose, title, children, footer, wide }: {
   return (
     <div className="fixed inset-0 z-[60] flex items-end justify-center bg-slate-900/40 p-0 sm:items-center sm:p-4" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <div role="dialog" aria-modal="true" aria-label={title}
-        className={cx("flex max-h-[92vh] w-full flex-col rounded-t-2xl bg-white shadow-xl sm:rounded-2xl", wide ? "sm:max-w-2xl" : "sm:max-w-lg")}>
+        className={cx("flex max-h-[92vh] w-full flex-col rounded-t-2xl bg-white shadow-xl sm:rounded-2xl", wide === "xl" ? "sm:max-w-4xl" : wide ? "sm:max-w-2xl" : "sm:max-w-lg")}>
         <div className="flex items-center justify-between border-b border-slate-200 px-5 py-3.5">
           <h2 className="text-base font-semibold text-slate-900">{title}</h2>
           <IconButton label="Close" onClick={onClose}><X className="size-4" /></IconButton>
