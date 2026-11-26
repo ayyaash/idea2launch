@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { addDays } from "date-fns";
-import { ChevronLeft, ChevronRight, FolderKanban, AlertTriangle, CalendarClock, CheckCircle2, Download, Plus, Filter } from "lucide-react";
+import { ChevronLeft, ChevronRight, ChevronDown, FolderKanban, AlertTriangle, CalendarClock, CheckCircle2, Download, Plus, Filter } from "lucide-react";
 import { useStore } from "../lib/store";
 import { useAuth } from "../lib/auth";
 import { PROJECT_STATUSES, PROJECT_STATUS_BAR, PROJECT_STATUS_LABEL, PROJECT_STATUS_STYLE, fmtShort, isoDay } from "../lib/format";
@@ -26,6 +26,14 @@ export default function Dashboard() {
   const nav = useNavigate();
   const [year, setYear] = useState(new Date().getFullYear());
   const [category, setCategory] = useState("");
+  // categories folded away on the timeline (remembered on this device)
+  const [folded, setFolded] = useState<Set<string>>(() => { try { return new Set(JSON.parse(localStorage.getItem("i2l.foldedCategories") ?? "[]")); } catch { return new Set(); } });
+  const toggleFold = (id: string) => setFolded((f) => {
+    const n = new Set(f);
+    if (n.has(id)) n.delete(id); else n.add(id);
+    try { localStorage.setItem("i2l.foldedCategories", JSON.stringify([...n])); } catch { /* ignore */ }
+    return n;
+  });
   const [status, setStatus] = useState<"" | ProjectStatus>("");
   const [lead, setLead] = useState("");
   const [newOpen, setNewOpen] = useState(false);
@@ -217,11 +225,14 @@ export default function Dashboard() {
                 </div>
                 {groups.map((g) => (
                   <div key={g.id}>
-                    <div className="sticky left-0 flex w-fit items-center gap-2 px-4 py-1.5 text-xs font-semibold text-slate-600">
+                    <button onClick={() => toggleFold(g.id)} aria-expanded={!folded.has(g.id)}
+                      title={folded.has(g.id) ? "Show these projects" : "Hide these projects"}
+                      className="sticky left-0 flex w-fit items-center gap-2 rounded-md px-4 py-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900">
+                      <ChevronDown className={cx("size-4 text-slate-400 transition-transform", folded.has(g.id) && "-rotate-90")} />
                       <span className="size-2.5 rounded-full" style={{ background: g.color }} />{g.name}
                       <span className="font-normal text-slate-400">{g.projects.length}</span>
-                    </div>
-                    {g.projects.map((p) => <TimelineRow key={p.id} p={p} win={win} todayPos={todayPos} tasks={store.tasks} onOpen={() => nav(`/projects/${p.id}`)} />)}
+                    </button>
+                    {!folded.has(g.id) && g.projects.map((p) => <TimelineRow key={p.id} p={p} win={win} todayPos={todayPos} tasks={store.tasks} onOpen={() => nav(`/projects/${p.id}`)} />)}
                   </div>
                 ))}
               </div>
