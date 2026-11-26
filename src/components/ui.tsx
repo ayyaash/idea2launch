@@ -45,10 +45,10 @@ export function IconButton({ label, className, children, ...rest }: ButtonHTMLAt
   );
 }
 
-const fieldBase = "rounded-lg border-0 bg-white px-3 py-[7px] text-sm text-ink ring-1 ring-line hover:ring-slate-300 placeholder:text-slate-400 focus:ring-2 focus:ring-navy-400 focus:outline-none disabled:bg-slate-50 disabled:text-slate-500";
+const fieldBase = "rounded-lg border-0 bg-white px-3 py-[7px] text-sm text-ink ring-1 ring-slate-300 hover:ring-slate-400 placeholder:text-slate-400 focus:ring-2 focus:ring-navy-400 focus:outline-none disabled:bg-slate-50 disabled:text-slate-500";
 
-/** "field-quiet" in className: borderless until hovered or focused (property lists such as the task panel). */
-const quietBase = "rounded-lg border-0 bg-transparent px-2 py-[7px] text-sm font-medium text-ink ring-1 ring-transparent hover:bg-slate-50 hover:ring-line placeholder:text-slate-400 focus:bg-white focus:ring-2 focus:ring-navy-400 focus:outline-none disabled:text-slate-600 disabled:hover:bg-transparent disabled:hover:ring-transparent";
+/** "field-quiet" in className: lighter field for property lists such as the task panel; still clearly a field. */
+const quietBase = "rounded-lg border-0 bg-white px-2.5 py-[6px] text-sm font-medium text-ink ring-1 ring-slate-300 hover:ring-slate-400 placeholder:text-slate-400 focus:ring-2 focus:ring-navy-400 focus:outline-none disabled:bg-transparent disabled:text-slate-600 disabled:ring-transparent";
 const baseOf = (c?: string) => (c?.includes("field-quiet") ? quietBase : fieldBase);
 
 /** Full width unless the caller sets its own width. */

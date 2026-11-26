@@ -6,7 +6,7 @@ import { useStore } from "../lib/store";
 import { useAuth } from "../lib/auth";
 import { supabase } from "../lib/supabase";
 import {
-  PRIORITIES, PRIORITY_LABEL, PRIORITY_STYLE, PROJECT_STATUSES, PROJECT_STATUS_LABEL, PROJECT_STATUS_STYLE, ROLE_LABEL, TASK_STATUSES, TASK_STATUS_DOT,
+  PRIORITIES, PRIORITY_LABEL, PRIORITY_MARK, PRIORITY_STYLE, PROJECT_STATUSES, PROJECT_STATUS_LABEL, PROJECT_STATUS_STYLE, ROLE_LABEL, TASK_STATUSES, TASK_STATUS_DOT,
   TASK_STATUS_LABEL, fmtDate, toDate,
 } from "../lib/format";
 import { progressOf, today } from "../lib/metrics";
@@ -168,6 +168,7 @@ function StatusText({ s }: { s: ProjectStatus }) {
 type Group = { key: string; title: string; dot?: string; sectionId?: string | null; status?: TaskStatus; tasks: Task[]; section?: Section };
 
 function ListView({ projectId, tasks, canEdit, canAdd }: { projectId: string; tasks: Task[]; canEdit: boolean; canAdd: boolean }) {
+  const { me } = useAuth();
   const store = useStore();
   const [groupBy, setGroupBy] = useState<"none" | "status">(() => (localStorage.getItem("i2l-group") === "status" ? "status" : "none"));
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
@@ -237,7 +238,7 @@ function ListView({ projectId, tasks, canEdit, canAdd }: { projectId: string; ta
                     <div className="border-b border-line-soft py-1.5 pr-3 pl-7">
                       <QuickAdd inputId={gi === 0 ? ADD_TASK_INPUT : undefined} placeholder={groupBy === "status" ? `Add a task to ${g.title}…` : "Add a task: type a name and press Enter"}
                         onAdd={(title) => store.mutate(() => supabase.from("tasks").insert({
-                          project_id: projectId, title, ...(g.status ? { status: g.status } : {}),
+                          project_id: projectId, title, owner_id: me?.id ?? null, ...(g.status ? { status: g.status } : {}),
                         }))} />
                     </div>
                   )}
@@ -330,6 +331,7 @@ function useTaskReorder(projectId: string) {
 
 /* ------------------------------ Board ------------------------------ */
 function BoardView({ projectId, tasks, canEdit, canAdd }: { projectId: string; tasks: Task[]; canEdit: boolean; canAdd: boolean }) {
+  const { me } = useAuth();
   const store = useStore();
   const openTask = useOpenTask();
   const changeStatus = useStatusChange();
@@ -368,7 +370,7 @@ function BoardView({ projectId, tasks, canEdit, canAdd }: { projectId: string; t
                       className={cx("cursor-pointer rounded-xl bg-white p-3 shadow-card ring-1 ring-line hover:shadow-md hover:ring-slate-300", dragId === t.id && "opacity-50")}>
                       <p className={cx("text-sm font-medium", t.status === "done" && "text-slate-400 line-through")}>{t.title}</p>
                       <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                        <Pill className={PRIORITY_STYLE[t.priority]}>{PRIORITY_LABEL[t.priority]}</Pill>
+                        <Pill className={PRIORITY_STYLE[t.priority]}><span className="mr-1 font-extrabold tracking-tight">{PRIORITY_MARK[t.priority]}</span>{PRIORITY_LABEL[t.priority]}</Pill>
                         {blocked && <Pill className="bg-amber-50 text-amber-800 ring-amber-200"><Lock className="size-3" />Waiting</Pill>}
                         {subs.length > 0 && <span className="text-xs text-slate-500">{subs.filter((s) => s.status === "done").length}/{subs.length} subtasks</span>}
                       </div>
@@ -381,7 +383,7 @@ function BoardView({ projectId, tasks, canEdit, canAdd }: { projectId: string; t
                 })}
                 {canAdd && (
                   <div className="pt-1">
-                    <QuickAdd inputId={status === "todo" ? ADD_TASK_INPUT : undefined} placeholder="Add task" onAdd={(title) => store.mutate(() => supabase.from("tasks").insert({ project_id: projectId, title, status }))} />
+                    <QuickAdd inputId={status === "todo" ? ADD_TASK_INPUT : undefined} placeholder="Add task" onAdd={(title) => store.mutate(() => supabase.from("tasks").insert({ project_id: projectId, title, status, owner_id: me?.id ?? null }))} />
                   </div>
                 )}
               </div>

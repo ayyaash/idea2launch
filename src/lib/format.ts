@@ -62,6 +62,8 @@ export const TASK_STATUS_DOT: Record<TaskStatus, string> = {
 
 export const PRIORITIES: Priority[] = ["high", "medium", "low"];
 export const PRIORITY_LABEL: Record<Priority, string> = { high: "High", medium: "Medium", low: "Low" };
+export const PRIORITY_MARK: Record<Priority, string> = { high: "!!!", medium: "!!", low: "!" };
+export const PRIORITY_MARK_COLOR: Record<Priority, string> = { high: "text-red-600", medium: "text-amber-600", low: "text-slate-500" };
 export const PRIORITY_STYLE: Record<Priority, string> = {
   high: "bg-red-50 text-red-700 ring-transparent",
   medium: "bg-amber-50 text-amber-800 ring-transparent",

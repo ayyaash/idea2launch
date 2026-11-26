@@ -1,10 +1,11 @@
 import type { ReactNode } from "react";
 import { CheckCircle2, Circle, ChevronRight, Lock, ListTree } from "lucide-react";
 import { useStore } from "../lib/store";
-import { PRIORITY_LABEL, PRIORITY_STYLE, TASK_STATUS_LABEL, TASK_STATUS_STYLE, dueLabel, fmtRange, fmtShort } from "../lib/format";
+import { PRIORITY_LABEL, PRIORITY_MARK, PRIORITY_STYLE, TASK_STATUS_LABEL, TASK_STATUS_STYLE, dueLabel, fmtRange, fmtShort } from "../lib/format";
 import type { Task } from "../lib/types";
-import { Avatar, Pill, cx } from "./ui";
+import { Pill, cx } from "./ui";
 import { DueBadge, useOpenTask, useStatusChange } from "./TaskPanel";
+import { OwnerQuickPick } from "./pickers";
 
 /** One task line used in project lists and "My tasks". */
 export function TaskRow({ task, canEdit, showProject, depth = 0, expanded, onToggleExpand, dragHandle }: {
@@ -15,11 +16,11 @@ export function TaskRow({ task, canEdit, showProject, depth = 0, expanded, onTog
   const store = useStore();
   const openTask = useOpenTask();
   const changeStatus = useStatusChange();
-  const owner = task.owner_id ? store.profileById.get(task.owner_id) : undefined;
   const project = store.projectById.get(task.project_id);
   const subs = store.tasks.filter((t) => t.parent_id === task.id);
   const blocked = task.status !== "done" && store.dependencies.some((d) => d.task_id === task.id && store.taskById.get(d.depends_on_id)?.status !== "done");
   const done = task.status === "done";
+  const setOwner = (owner_id: string | null) => store.patchTask(task.id, { owner_id });
   const parent = task.parent_id && showProject ? store.taskById.get(task.parent_id) : undefined;
 
   return (
@@ -55,18 +56,17 @@ export function TaskRow({ task, canEdit, showProject, depth = 0, expanded, onTog
       {/* compact meta for phones */}
       <div className="flex items-center gap-2 md:hidden">
         <DueBadge task={task} />
-        <Avatar person={owner} size={22} />
+        <OwnerQuickPick compact value={task.owner_id} projectId={task.project_id} disabled={!canEdit} onChange={setOwner} />
       </div>
-      <div className="hidden min-w-0 items-center gap-2 md:flex">
-        <Avatar person={owner} size={22} />
-        <span className="truncate text-sm text-slate-600">{owner?.full_name ?? <span className="text-slate-400">Unassigned</span>}</span>
+      <div className="hidden min-w-0 md:block">
+        <OwnerQuickPick value={task.owner_id} projectId={task.project_id} disabled={!canEdit} onChange={setOwner} />
       </div>
       <div className="hidden text-sm md:block">
         {task.due_date && task.start_date && dueLabel(task.due_date, done)?.tone !== "late"
           ? <span className="text-xs whitespace-nowrap text-slate-600">{fmtRange(task.start_date, task.due_date)}</span>
           : task.due_date ? <DueBadge task={task} /> : task.start_date ? <span className="text-xs text-slate-400">from {fmtShort(task.start_date)}</span> : <span className="text-xs text-slate-300">–</span>}
       </div>
-      <div className="hidden md:block"><Pill className={PRIORITY_STYLE[task.priority]}>{PRIORITY_LABEL[task.priority]}</Pill></div>
+      <div className="hidden md:block"><Pill className={PRIORITY_STYLE[task.priority]}><span className="mr-1 font-extrabold tracking-tight">{PRIORITY_MARK[task.priority]}</span>{PRIORITY_LABEL[task.priority]}</Pill></div>
       <div className="hidden md:block"><Pill className={TASK_STATUS_STYLE[task.status]}>{TASK_STATUS_LABEL[task.status]}</Pill></div>
     </div>
   );

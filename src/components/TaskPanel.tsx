@@ -7,13 +7,13 @@ import { useStore } from "../lib/store";
 import { useAuth } from "../lib/auth";
 import { supabase, errorText } from "../lib/supabase";
 import {
-  PRIORITIES, PRIORITY_LABEL, TASK_STATUSES, TASK_STATUS_LABEL, TASK_STATUS_DOT, fmtBytes, fmtDate, timeAgo, dueLabel,
+  PRIORITIES, PRIORITY_LABEL, PRIORITY_MARK, TASK_STATUSES, TASK_STATUS_LABEL, TASK_STATUS_DOT, fmtBytes, fmtDate, timeAgo, dueLabel,
 } from "../lib/format";
 import { canApprove, canDeleteTask, canEditProject, canContribute, isManager } from "../lib/perms";
 import { addDays, differenceInCalendarDays, format, parseISO } from "date-fns";
 import type { Attachment, Comment, Task, TaskStatus } from "../lib/types";
 import { Avatar, Button, IconButton, Input, Select, Textarea, cx, useConfirm } from "./ui";
-import { PeoplePicker, PersonChip, PersonSelect } from "./pickers";
+import { OwnerQuickPick, PeoplePicker, PersonChip } from "./pickers";
 import { useToast } from "./Toast";
 import { CopyTaskModal } from "./CopyTaskModal";
 
@@ -206,20 +206,20 @@ function TaskPanel({ taskId, onClose }: { taskId: string; onClose: () => void })
         <dl className="mt-4 grid grid-cols-[112px_1fr] items-center gap-x-2 gap-y-1 text-sm [&>dt]:text-[13px]">
           <dt className="text-slate-500">Status</dt>
           <dd>
-            <Select aria-label="Status" value={task.status} disabled={!canEdit} className="field-quiet max-w-52"
+            <Select aria-label="Status" value={task.status} disabled={!canEdit} className="field-quiet max-w-60"
               onChange={(e) => changeStatus(task, e.target.value as TaskStatus)}>
               {TASK_STATUSES.map((s) => <option key={s} value={s}>{TASK_STATUS_LABEL[s]}</option>)}
             </Select>
           </dd>
           <dt className="text-slate-500">Priority</dt>
           <dd>
-            <Select aria-label="Priority" value={task.priority} disabled={!canEdit} className="field-quiet max-w-52"
+            <Select aria-label="Priority" value={task.priority} disabled={!canEdit} className="field-quiet max-w-60"
               onChange={(e) => patch({ priority: e.target.value as Task["priority"] })}>
-              {PRIORITIES.map((p) => <option key={p} value={p}>{PRIORITY_LABEL[p]}</option>)}
+              {PRIORITIES.map((p) => <option key={p} value={p} className="text-ink">{PRIORITY_MARK[p]}  {PRIORITY_LABEL[p]}</option>)}
             </Select>
           </dd>
           <dt className="text-slate-500">Owner</dt>
-          <dd><PersonSelect label="Owner" value={task.owner_id} projectId={project.id} disabled={!canEdit} className="field-quiet max-w-64" onChange={(owner_id) => patch({ owner_id })} /></dd>
+          <dd className="max-w-60"><OwnerQuickPick field value={task.owner_id} projectId={project.id} disabled={!canEdit} onChange={(owner_id) => patch({ owner_id })} /></dd>
           <dt className="self-start pt-1 text-slate-500">Collaborators</dt>
           <dd className="flex min-h-9 flex-wrap items-center gap-1.5 px-2 py-1">
             {collaborators.map((id) => (
@@ -279,7 +279,7 @@ function TaskPanel({ taskId, onClose }: { taskId: string; onClose: () => void })
             {canEdit && !task.parent_id && (
               <li className="px-3 py-1.5">
                 <QuickAdd placeholder="Add a subtask and press Enter"
-                  onAdd={(title) => store.mutate(() => supabase.from("tasks").insert({ project_id: project.id, parent_id: task.id, title }))} />
+                  onAdd={(title) => store.mutate(() => supabase.from("tasks").insert({ project_id: project.id, parent_id: task.id, title, owner_id: me?.id ?? null }))} />
               </li>
             )}
           </ul>
@@ -347,10 +347,27 @@ function TaskPanel({ taskId, onClose }: { taskId: string; onClose: () => void })
 }
 
 function PanelShell({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
+  const ref = useRef<HTMLElement>(null);
+  // Clicking anywhere outside the panel closes it (but not clicks in dialogs or toasts, and not
+  // when the click opened another task, which swaps the panel instead).
+  useEffect(() => {
+    const outside = (t: EventTarget | null) => t instanceof Element && !ref.current?.contains(t)
+      && !t.closest('[role="dialog"], [aria-live], [data-keep-panel]') && t.isConnected;
+    let downOutside = false;
+    const down = (e: MouseEvent) => { downOutside = outside(e.target); };
+    const click = (e: MouseEvent) => {
+      if (!downOutside || !outside(e.target)) return;
+      const before = new URLSearchParams(window.location.search).get("task");
+      setTimeout(() => { if (new URLSearchParams(window.location.search).get("task") === before) onClose(); }, 0);
+    };
+    document.addEventListener("mousedown", down, true);
+    document.addEventListener("click", click, true);
+    return () => { document.removeEventListener("mousedown", down, true); document.removeEventListener("click", click, true); };
+  }, [onClose]);
   return (
     <>
       <div className="fixed inset-0 z-40 bg-scrim/40 md:hidden" onClick={onClose} />
-      <section aria-label="Task details"
+      <section ref={ref} aria-label="Task details"
         className="fixed inset-y-0 right-0 z-50 flex w-full flex-col bg-white shadow-pop ring-1 ring-line md:w-[560px]">
         {children}
       </section>
