@@ -42,7 +42,7 @@ export function BirthdayPrompt() {
         <Button variant="primary" loading={busy} disabled={!bm || !bd} onClick={() => save(false)}>Save</Button>
       </>}>
       <div className="flex items-start gap-3">
-        <span className="grid size-10 shrink-0 place-items-center rounded-full bg-pink-50 text-pink-600"><Cake className="size-5" /></span>
+        <span className="grid size-10 shrink-0 place-items-center rounded-full bg-pink-500/10 text-pink-500"><Cake className="size-5" /></span>
         <div className="flex-1 space-y-3">
           <p className="text-sm text-slate-600">We've added a team Birthdays calendar. Add your day and month so we can celebrate. No year needed, and you can change it later in My account.</p>
           <BirthdayField month={bm} day={bd} onChange={(m, d) => { setBm(m); setBd(d); }} />
@@ -119,7 +119,7 @@ export function BirthdayOverlay({ force, onDone }: { force?: boolean; onDone?: (
           <div className="absolute -top-9 left-1/2 grid size-[72px] -translate-x-1/2 place-items-center rounded-full bg-gradient-to-br from-pink-400 to-orange-400 text-white shadow-lg ring-4 ring-white">
             <Cake className="size-9" />
           </div>
-          <p className="text-sm font-semibold tracking-wide text-pink-600 uppercase">{days === 0 ? "Today's your day" : `${days} day${days === 1 ? "" : "s"} ago was your day`}</p>
+          <p className="text-sm font-semibold tracking-wide text-pink-500 uppercase">{days === 0 ? "Today's your day" : `${days} day${days === 1 ? "" : "s"} ago was your day`}</p>
           <h2 className="mt-1 text-3xl font-extrabold text-ink">Happy birthday, {first}!</h2>
           <p className="mt-3 text-[15px] text-slate-600">Wishing you a wonderful year ahead, full of good ideas and great launches. From all of us on the team.</p>
           <Button variant="primary" className="mt-6" icon={<PartyPopper className="size-4" />} onClick={close}>Thank you!</Button>

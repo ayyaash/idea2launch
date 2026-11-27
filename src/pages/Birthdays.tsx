@@ -56,8 +56,8 @@ export default function Birthdays() {
         </>} />
 
       {celebrating.length > 0 && (
-        <div className="mb-4 flex flex-wrap items-center gap-3 rounded-2xl bg-pink-50 px-4 py-3 ring-1 ring-pink-200">
-          <PartyPopper className="size-5 text-pink-600" />
+        <div className="mb-4 flex flex-wrap items-center gap-3 rounded-2xl bg-pink-500/10 px-4 py-3 ring-1 ring-pink-500/30">
+          <PartyPopper className="size-5 text-pink-500" />
           <p className="text-sm text-ink">
             <span className="font-semibold">Birthday week: </span>
             {celebrating.map((p) => `${p.full_name} (${fmtBirthday(p)})`).join(", ")}
@@ -66,7 +66,7 @@ export default function Birthdays() {
         </div>
       )}
 
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+      <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
         <Card className="overflow-hidden">
           <div className="grid grid-cols-7 border-b border-line-soft bg-slate-50/80 text-center text-[11px] font-bold tracking-wider text-slate-500 uppercase">
             {WEEKDAYS.map((d) => <div key={d} className="py-2">{d}</div>)}
@@ -76,18 +76,18 @@ export default function Birthdays() {
               const list = d ? byDay.get(d) ?? [] : [];
               const isToday = !!d && isSameDay(new Date(month.getFullYear(), month.getMonth(), d), today);
               return (
-                <div key={i} className={cx("min-h-24 border-r border-b border-line-soft p-1.5 sm:min-h-28 sm:p-2 [&:nth-child(7n)]:border-r-0",
-                  !d && "bg-slate-50/50", list.length > 0 && "bg-pink-50/70")}>
+                <div key={i} className={cx("min-h-20 border-r border-b border-line-soft p-1.5 sm:min-h-24 sm:p-2 [&:nth-child(7n)]:border-r-0 [&:nth-last-child(-n+7)]:border-b-0",
+                  !d && "bg-slate-50/60", list.length > 0 && "bg-pink-500/10 shadow-[inset_0_3px_0_0] shadow-pink-500/70")}>
                   {d && (
                     <>
                       <div className="flex items-center justify-between">
                         <span className={cx("grid size-7 place-items-center rounded-full text-sm",
-                          isToday ? "bg-cta font-bold text-on-accent" : list.length ? "font-bold text-pink-700" : "text-slate-500")}>{d}</span>
+                          isToday ? "bg-cta font-bold text-on-accent" : list.length ? "font-bold text-pink-500" : "text-slate-500")}>{d}</span>
                         {list.length > 0 && <Cake className="size-4 text-pink-500" aria-label="Birthday" />}
                       </div>
                       <div className="mt-1 space-y-1">
                         {list.map((p) => (
-                          <div key={p.id} title={p.full_name} className="flex min-w-0 items-center gap-1.5 rounded-md bg-white px-1 py-0.5 shadow-sm ring-1 ring-pink-200">
+                          <div key={p.id} title={p.full_name} className="flex min-w-0 items-center gap-1.5 rounded-full bg-white py-0.5 pr-2 pl-0.5 shadow-sm ring-1 ring-line">
                             <Avatar person={p} size={20} />
                             <span className="hidden truncate text-xs font-medium text-ink sm:inline">{p.full_name.split(" ")[0]}</span>
                           </div>
@@ -113,7 +113,7 @@ export default function Birthdays() {
                       <p className="truncate text-sm font-medium text-ink">{p.full_name}</p>
                       <p className="truncate text-xs text-slate-500">{p.job_title || " "}</p>
                     </div>
-                    <span className="rounded-full bg-pink-50 px-2 py-0.5 text-xs font-semibold text-pink-700 ring-1 ring-pink-200">{d} {format(month, "MMM")}</span>
+                    <span className="rounded-full bg-pink-500/10 px-2 py-0.5 text-xs font-semibold text-pink-500 ring-1 ring-pink-500/30">{d} {format(month, "MMM")}</span>
                   </li>
                 )))}
               </ul>
