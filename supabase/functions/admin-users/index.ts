@@ -5,7 +5,7 @@
 // can be pasted straight into the Supabase dashboard's function editor.
 
 const LOGIN_DOMAIN = "idea2launch.local";
-const ROLES = ["admin", "manager", "coordinator", "member", "viewer"];
+const ROLES = ["admin", "manager", "coordinator", "member", "intern", "viewer"];
 
 const cors = {
   "Access-Control-Allow-Origin": "*",

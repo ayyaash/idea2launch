@@ -1,4 +1,4 @@
-import type { Profile, Project } from "./types";
+import type { Profile, Project, Task } from "./types";
 
 // Mirrors the database rules (supabase/migrations). The database is the real gatekeeper;
 // these only decide which buttons to show.
@@ -8,8 +8,14 @@ export function isAdmin(me: Profile | null) {
 export function isManager(me: Profile | null) {
   return me?.role === "admin" || me?.role === "manager";
 }
+/** Everyone except Viewers and Interns adds and edits work. */
 export function canContribute(me: Profile | null) {
-  return !!me && me.role !== "viewer";
+  return !!me && me.role !== "viewer" && me.role !== "intern";
+}
+export const isIntern = (me: Profile | null) => me?.role === "intern";
+/** Interns can change the status of (and comment on) tasks they own or help on, nothing else. */
+export function internOnTask(me: Profile | null, task: Task, collaboratorIds: string[]) {
+  return isIntern(me) && (task.owner_id === me!.id || collaboratorIds.includes(me!.id));
 }
 /** Everyone except Viewers can add projects; a Member's project waits for approval. */
 export function canCreateProject(me: Profile | null) {

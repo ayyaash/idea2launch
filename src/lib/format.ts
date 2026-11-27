@@ -6,6 +6,7 @@ export const ROLE_LABEL: Record<Role, string> = {
   manager: "Manager",
   coordinator: "Project Coordinator",
   member: "Member",
+  intern: "Intern",
   viewer: "Viewer",
 };
 export const ROLE_HELP: Record<Role, string> = {
@@ -13,9 +14,10 @@ export const ROLE_HELP: Record<Role, string> = {
   manager: "Full control over every project",
   coordinator: "Creates projects and runs the ones they lead",
   member: "Works on tasks in projects they're assigned to",
+  intern: "Can't add tasks; moves tasks assigned to them through to Done",
   viewer: "Can see everything, can't change anything",
 };
-export const ROLES: Role[] = ["admin", "manager", "coordinator", "member", "viewer"];
+export const ROLES: Role[] = ["admin", "manager", "coordinator", "member", "intern", "viewer"];
 
 export const PROJECT_STATUSES: ProjectStatus[] = ["planning", "active", "on_hold", "completed", "cancelled"];
 export const PROJECT_STATUS_LABEL: Record<ProjectStatus, string> = {

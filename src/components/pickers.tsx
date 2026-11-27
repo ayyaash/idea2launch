@@ -165,6 +165,7 @@ export function OwnerQuickPick({ value, projectId, onChange, disabled, compact, 
                     className={cx("flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm", i === hi && "bg-slate-100")}>
                     {p ? <Avatar person={p} size={22} /> : <span className="size-[22px]" />}
                     <span className={cx("flex-1 truncate", p ? "text-ink" : "text-slate-500")}>{p ? p.full_name : "Remove owner"}</span>
+                    {p?.role === "intern" && <span className="rounded-full bg-sky-500/10 px-1.5 text-[10px] font-semibold text-sky-600 ring-1 ring-sky-500/30">Intern</span>}
                     {p?.id === value && <Check className="size-4 text-brand-600" />}
                   </button>
                 </div>

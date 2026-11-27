@@ -9,7 +9,7 @@ import { supabase, errorText } from "../lib/supabase";
 import {
   PRIORITIES, PRIORITY_LABEL, PRIORITY_MARK, TASK_STATUSES, TASK_STATUS_LABEL, TASK_STATUS_DOT, fmtBytes, fmtDate, timeAgo, dueLabel,
 } from "../lib/format";
-import { canApprove, canDeleteTask, canEditProject, canContribute, isManager } from "../lib/perms";
+import { canApprove, canDeleteTask, canEditProject, canContribute, internOnTask, isManager } from "../lib/perms";
 import { addDays, differenceInCalendarDays, format, parseISO } from "date-fns";
 import type { Attachment, Comment, Task, TaskStatus } from "../lib/types";
 import { Avatar, Button, IconButton, Input, Select, Textarea, cx, useConfirm } from "./ui";
@@ -84,6 +84,7 @@ function TaskPanel({ taskId, onClose }: { taskId: string; onClose: () => void })
   const project = task ? store.projectById.get(task.project_id) : undefined;
   const members = project ? store.membersOf(project.id) : new Set<string>();
   const canEdit = canEditProject(me, project, members);
+  const canStatus = canEdit || (!!task && internOnTask(me, task, store.collaborators.filter((c) => c.task_id === task.id).map((c) => c.user_id)));
   const [comments, setComments] = useState<Comment[]>([]);
   const [files, setFiles] = useState<Attachment[]>([]);
   const [copyOpen, setCopyOpen] = useState(false);
@@ -152,7 +153,7 @@ function TaskPanel({ taskId, onClose }: { taskId: string; onClose: () => void })
     <PanelShell onClose={onClose}>
       {/* header */}
       <div className="flex h-14 shrink-0 items-center gap-2 border-b border-line-soft px-4">
-        <Button size="sm" variant="secondary" disabled={!canEdit}
+        <Button size="sm" variant="secondary" disabled={!canStatus}
           icon={done ? <CheckCircle2 className="size-4 text-emerald-600" /> : <Circle className="size-4 text-slate-400" />}
           onClick={() => changeStatus(task, done ? "todo" : "done")}>
           {done ? "Completed" : "Mark complete"}
@@ -198,7 +199,8 @@ function TaskPanel({ taskId, onClose }: { taskId: string; onClose: () => void })
         })()}
         {!canEdit && (
           <p className="mt-2 rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-500 ring-1 ring-line">
-            You can view this task. Only people assigned to this project can change it.
+            {canStatus ? "This task is assigned to you. Move it along with Status or Mark complete, and leave a comment if you need anything."
+              : "You can view this task. Only people assigned to this project can change it."}
           </p>
         )}
 
@@ -206,7 +208,7 @@ function TaskPanel({ taskId, onClose }: { taskId: string; onClose: () => void })
         <dl className="mt-4 grid grid-cols-[112px_1fr] items-center gap-x-2 gap-y-1 text-sm [&>dt]:text-[13px]">
           <dt className="text-slate-500">Status</dt>
           <dd>
-            <Select aria-label="Status" value={task.status} disabled={!canEdit} className="field-quiet max-w-60"
+            <Select aria-label="Status" value={task.status} disabled={!canStatus} className="field-quiet max-w-60"
               onChange={(e) => changeStatus(task, e.target.value as TaskStatus)}>
               {TASK_STATUSES.map((s) => <option key={s} value={s}>{TASK_STATUS_LABEL[s]}</option>)}
             </Select>
@@ -266,7 +268,7 @@ function TaskPanel({ taskId, onClose }: { taskId: string; onClose: () => void })
           <ul className="divide-y divide-line-soft rounded-xl ring-1 ring-line">
             {subtasks.map((s) => (
               <li key={s.id} className="flex items-center gap-2 px-3 py-2">
-                <button aria-label={s.status === "done" ? "Mark not done" : "Mark done"} disabled={!canEdit}
+                <button aria-label={s.status === "done" ? "Mark not done" : "Mark done"} disabled={!canEdit && !internOnTask(me, s, store.collaborators.filter((c) => c.task_id === s.id).map((c) => c.user_id))}
                   onClick={() => changeStatus(s, s.status === "done" ? "todo" : "done")}>
                   {s.status === "done" ? <CheckCircle2 className="size-[18px] text-emerald-600" /> : <Circle className="size-[18px] text-slate-400 hover:text-emerald-600" />}
                 </button>
@@ -325,7 +327,7 @@ function TaskPanel({ taskId, onClose }: { taskId: string; onClose: () => void })
               );
             })}
           </ul>
-          {canContribute(me) ? (
+          {canContribute(me) || canStatus ? (
             <CommentBox onPost={async (body) => {
               const { error } = await supabase.from("comments").insert({ task_id: task.id, author_id: me!.id, body });
               if (error) { toast.error(errorText(error)); return false; }

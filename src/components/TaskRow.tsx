@@ -7,6 +7,8 @@ import { Input, Pill, cx } from "./ui";
 import { DueBadge, useOpenTask, useStatusChange } from "./TaskPanel";
 import { OwnerQuickPick, QuickOption, QuickPopover } from "./pickers";
 import { useToast } from "./Toast";
+import { useAuth } from "../lib/auth";
+import { internOnTask } from "../lib/perms";
 
 /** One task line used in project lists and "My tasks". */
 export function TaskRow({ task, canEdit, showProject, depth = 0, expanded, onToggleExpand, dragHandle }: {
@@ -23,6 +25,8 @@ export function TaskRow({ task, canEdit, showProject, depth = 0, expanded, onTog
   const done = task.status === "done";
   const setOwner = (owner_id: string | null) => store.patchTask(task.id, { owner_id });
   const toast = useToast();
+  const { me } = useAuth();
+  const canStatus = canEdit || internOnTask(me, task, store.collaborators.filter((c) => c.task_id === task.id).map((c) => c.user_id));
   const mainTask = task.parent_id ? store.taskById.get(task.parent_id) : undefined;
   function setDate(key: "start_date" | "due_date", v: string | null) {
     if (v && mainTask) {
@@ -45,7 +49,7 @@ export function TaskRow({ task, canEdit, showProject, depth = 0, expanded, onTog
             <ChevronRight className={cx("size-4 transition-transform", expanded && "rotate-90")} />
           </button>
         ) : <span className="w-4" />}
-        <button aria-label={done ? `Mark "${task.title}" not done` : `Mark "${task.title}" done`} disabled={!canEdit}
+        <button aria-label={done ? `Mark "${task.title}" not done` : `Mark "${task.title}" done`} disabled={!canStatus}
           onClick={() => changeStatus(task, done ? "todo" : "done")} className="shrink-0 disabled:cursor-default">
           {done ? <CheckCircle2 className="size-[18px] text-emerald-600" /> : <Circle className="size-[18px] text-slate-400 hover:text-emerald-600" />}
         </button>
@@ -105,7 +109,7 @@ export function TaskRow({ task, canEdit, showProject, depth = 0, expanded, onTog
         </QuickPopover>
       </div>
       <div className="hidden md:block">
-        <QuickPopover label={`Status: ${TASK_STATUS_LABEL[task.status]}. Change status`} disabled={!canEdit} width={170} trigger={
+        <QuickPopover label={`Status: ${TASK_STATUS_LABEL[task.status]}. Change status`} disabled={!canStatus} width={170} trigger={
           <Pill className={TASK_STATUS_STYLE[task.status]}>{TASK_STATUS_LABEL[task.status]}</Pill>
         }>
           {(close) => TASK_STATUSES.map((st) => (
