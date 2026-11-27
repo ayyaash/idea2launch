@@ -7,18 +7,23 @@ import { isoDay } from "../lib/format";
 import { isoToday, today } from "../lib/metrics";
 import { canEditProject } from "../lib/perms";
 import type { Task } from "../lib/types";
-import { Card, EmptyState, PageHeader, Spinner, Tabs } from "../components/ui";
+import { Card, EmptyState, PageHeader, Select, Spinner, Tabs } from "../components/ui";
 import { TaskRow, TaskTableHeader } from "../components/TaskRow";
 
 export default function MyTasks() {
   const store = useStore();
   const { me } = useAuth();
   const [scope, setScope] = useState<"owner" | "collab">("owner");
+  // shared intern accounts: pick which intern's tasks to show
+  const [intern, setIntern] = useState("");
+  const internNames = useMemo(() => me?.role === "intern"
+    ? [...new Set(store.tasks.filter((t) => t.owner_id === me.id && t.intern_name).map((t) => t.intern_name))].sort()
+    : [], [store.tasks, me]);
 
   const groups = useMemo(() => {
     if (!me) return [];
     const collabIds = new Set(store.collaborators.filter((c) => c.user_id === me.id).map((c) => c.task_id));
-    const mine = store.tasks.filter((t) => (scope === "owner" ? t.owner_id === me.id : collabIds.has(t.id)));
+    const mine = store.tasks.filter((t) => (scope === "owner" ? t.owner_id === me.id : collabIds.has(t.id)) && (!intern || t.intern_name === intern));
     const t0 = isoToday();
     const week = isoDay(addDays(today(), 7));
     const recent = isoDay(addDays(today(), -14));
@@ -31,7 +36,7 @@ export default function MyTasks() {
       { id: "nodate", title: "No due date", tasks: open.filter((t) => !t.due_date) },
       { id: "done", title: "Done in the last 2 weeks", tasks: mine.filter((t) => t.status === "done" && (t.completed_at ?? "") >= recent) },
     ];
-  }, [store.tasks, store.collaborators, me, scope]);
+  }, [store.tasks, store.collaborators, me, scope, intern]);
 
   if (!store.ready) return <Spinner />;
   const total = groups.slice(0, 4).reduce((n, g) => n + g.tasks.length, 0);
@@ -39,7 +44,18 @@ export default function MyTasks() {
   return (
     <div className="mx-auto max-w-[1200px]">
       <PageHeader title="My tasks" subtitle={`${total} open`} />
-      <Tabs value={scope} onChange={setScope} tabs={[{ id: "owner", label: "I own" }, { id: "collab", label: "I'm collaborating on" }]} />
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <Tabs value={scope} onChange={setScope} tabs={[{ id: "owner", label: "I own" }, { id: "collab", label: "I'm collaborating on" }]} />
+        {internNames.length > 0 && (
+          <label className="flex items-center gap-2 text-sm text-slate-600">
+            Intern
+            <Select aria-label="Show tasks for intern" value={intern} onChange={(e) => setIntern(e.target.value)} className="h-8 w-auto py-1 text-[13px]">
+              <option value="">Everyone on this account</option>
+              {internNames.map((n) => <option key={n} value={n}>{n}</option>)}
+            </Select>
+          </label>
+        )}
+      </div>
       <div className="mt-4 space-y-5">
         {total === 0 && groups[4].tasks.length === 0 ? (
           <EmptyState icon={<ListChecks className="size-8" />} title="Nothing here" text="Tasks assigned to you will show up here." />

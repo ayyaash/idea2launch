@@ -43,7 +43,7 @@ export async function exportToExcel(fileName: string, projects: Project[], tasks
       const p = lk.projectById.get(t.project_id);
       return [
         text(p?.code), text(p?.name), text(t.title), text(t.parent_id ? taskById.get(t.parent_id)?.title ?? "" : ""),
-        text(TASK_STATUS_LABEL[t.status]), text(PRIORITY_LABEL[t.priority]), text(name(t.owner_id)),
+        text(TASK_STATUS_LABEL[t.status]), text(PRIORITY_LABEL[t.priority]), text(t.intern_name ? `${t.intern_name} (${name(t.owner_id)})` : name(t.owner_id)),
         date(t.start_date), date(t.due_date), date(t.completed_at ? t.completed_at.slice(0, 10) : null),
         text(t.description),
       ];

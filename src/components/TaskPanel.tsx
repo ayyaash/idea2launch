@@ -221,7 +221,7 @@ function TaskPanel({ taskId, onClose }: { taskId: string; onClose: () => void })
             </Select>
           </dd>
           <dt className="text-slate-500">Owner</dt>
-          <dd className="max-w-60"><OwnerQuickPick field value={task.owner_id} projectId={project.id} disabled={!canEdit} onChange={(owner_id) => patch({ owner_id })} /></dd>
+          <dd className="max-w-60"><OwnerQuickPick field value={task.owner_id} internName={task.intern_name} projectId={project.id} disabled={!canEdit} onChange={(owner_id, intern_name) => patch({ owner_id, intern_name })} /></dd>
           <dt className="self-start pt-1 text-slate-500">Collaborators</dt>
           <dd className="flex min-h-9 flex-wrap items-center gap-1.5 px-2 py-1">
             {collaborators.map((id) => (

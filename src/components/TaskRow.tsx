@@ -23,7 +23,7 @@ export function TaskRow({ task, canEdit, showProject, depth = 0, expanded, onTog
   const subs = store.tasks.filter((t) => t.parent_id === task.id);
   const blocked = task.status !== "done" && store.dependencies.some((d) => d.task_id === task.id && store.taskById.get(d.depends_on_id)?.status !== "done");
   const done = task.status === "done";
-  const setOwner = (owner_id: string | null) => store.patchTask(task.id, { owner_id });
+  const setOwner = (owner_id: string | null, intern_name: string) => store.patchTask(task.id, { owner_id, intern_name });
   const toast = useToast();
   const { me } = useAuth();
   const canStatus = canEdit || internOnTask(me, task, store.collaborators.filter((c) => c.task_id === task.id).map((c) => c.user_id));
@@ -73,10 +73,10 @@ export function TaskRow({ task, canEdit, showProject, depth = 0, expanded, onTog
       {/* compact meta for phones */}
       <div className="flex items-center gap-2 md:hidden">
         <DueBadge task={task} />
-        <OwnerQuickPick compact value={task.owner_id} projectId={task.project_id} disabled={!canEdit} onChange={setOwner} />
+        <OwnerQuickPick compact value={task.owner_id} internName={task.intern_name} projectId={task.project_id} disabled={!canEdit} onChange={setOwner} />
       </div>
       <div className="hidden min-w-0 md:block">
-        <OwnerQuickPick value={task.owner_id} projectId={task.project_id} disabled={!canEdit} onChange={setOwner} />
+        <OwnerQuickPick value={task.owner_id} internName={task.intern_name} projectId={task.project_id} disabled={!canEdit} onChange={setOwner} />
       </div>
       <div className="hidden min-w-0 text-sm md:block">
         <QuickPopover label={`Dates for "${task.title}"`} disabled={!canEdit} width={240} trigger={

@@ -376,7 +376,10 @@ function BoardView({ projectId, tasks, canEdit, canAdd }: { projectId: string; t
                       </div>
                       <div className="mt-2 flex items-center justify-between">
                         <DueBadge task={t} />
-                        <Avatar person={owner} size={24} />
+                        <span className="flex min-w-0 items-center gap-1.5">
+                          {t.intern_name && owner?.role === "intern" && <span className="truncate text-xs text-sky-600">{t.intern_name}</span>}
+                          <Avatar person={owner} size={24} />
+                        </span>
                       </div>
                     </article>
                   );

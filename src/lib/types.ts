@@ -66,6 +66,8 @@ export interface Task {
   status: TaskStatus;
   priority: Priority;
   owner_id: string | null;
+  /** Which intern the task is for, when owned by a shared intern account. */
+  intern_name: string;
   start_date: string | null;
   due_date: string | null;
   sort_order: number;
