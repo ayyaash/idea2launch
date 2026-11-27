@@ -168,3 +168,16 @@ button, a, input, select, textarea { transition-property: color, background-colo
   background: repeating-linear-gradient(135deg, var(--color-slate-300) 0 6px, var(--color-slate-200) 6px 12px);
   box-shadow: inset 0 0 0 1px var(--color-slate-400);
 }
+
+/* birthday celebration */
+@keyframes bday-rise { from { transform: translateY(110%); } to { transform: translateY(-120vh); } }
+@keyframes bday-sway { 0%, 100% { margin-left: -12px; } 50% { margin-left: 12px; } }
+@keyframes bday-fall { from { transform: translateY(-20px) rotate(0deg); opacity: 1; } to { transform: translateY(105vh) rotate(720deg); opacity: 0.9; } }
+@keyframes bday-pop { 0% { transform: scale(0.6); opacity: 0; } 70% { transform: scale(1.04); opacity: 1; } 100% { transform: scale(1); } }
+.bday-balloon { transform: translateY(110%); animation-name: bday-rise, bday-sway; animation-timing-function: linear, ease-in-out; animation-iteration-count: infinite, infinite; }
+.bday-confetti { animation-name: bday-fall; animation-timing-function: linear; animation-iteration-count: infinite; }
+.bday-pop { animation: bday-pop 0.6s cubic-bezier(.2,.9,.3,1.2) both; }
+@media (prefers-reduced-motion: reduce) {
+  .bday-balloon, .bday-confetti { animation: none; display: none; }
+  .bday-pop { animation: none; }
+}

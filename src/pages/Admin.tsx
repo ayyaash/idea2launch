@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import { BirthdayField, birthdayError } from "../components/BirthdayField";
+import { fmtBirthday } from "../lib/birthdays";
 import { UserPlus, KeyRound, Trash2, Tags, SlidersHorizontal, Users, ShieldCheck, ArrowUp, ArrowDown, Copy, RefreshCw, Search, Pencil } from "lucide-react";
 import { useStore } from "../lib/store";
 import { useAuth } from "../lib/auth";
@@ -111,7 +113,7 @@ function PeopleAdmin() {
                 <Avatar person={p} size={34} />
                 <div className="min-w-0">
                   <p className="truncate text-sm font-medium">{p.full_name} {self && <span className="text-xs font-normal text-slate-400">(you)</span>}</p>
-                  <p className="truncate text-xs text-slate-500">{p.job_title || "No job title"} · added {fmtDate(p.created_at)}</p>
+                  <p className="truncate text-xs text-slate-500">{p.job_title || "No job title"} · {p.birth_month ? `🎂 ${fmtBirthday(p)}` : "no birthday"} · added {fmtDate(p.created_at)}</p>
                 </div>
               </div>
               <span className="font-mono text-sm text-slate-600">{p.username}</span>
@@ -223,11 +225,15 @@ function EditPersonModal({ person, onClose }: { person: Profile | null; onClose:
   const [title, setTitle] = useState("");
   const [color, setColor] = useState(SWATCHES[0]);
   const [busy, setBusy] = useState(false);
-  useEffect(() => { if (person) { setName(person.full_name); setTitle(person.job_title); setColor(person.color); } }, [person?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  const [bm, setBm] = useState<number | null>(null);
+  const [bd, setBd] = useState<number | null>(null);
+  useEffect(() => { if (person) { setName(person.full_name); setTitle(person.job_title); setColor(person.color); setBm(person.birth_month); setBd(person.birth_day); } }, [person?.id]); // eslint-disable-line react-hooks/exhaustive-deps
   if (!person) return null;
   async function save() {
+    const be = birthdayError(bm, bd);
+    if (be) return toast.error(be);
     setBusy(true);
-    const { error } = await supabase.from("profiles").update({ full_name: name.trim(), job_title: title.trim(), color }).eq("id", person!.id);
+    const { error } = await supabase.from("profiles").update({ full_name: name.trim(), job_title: title.trim(), color, birth_month: bm, birth_day: bd, ...(bm ? { birthday_asked: true } : {}) }).eq("id", person!.id);
     setBusy(false);
     if (error) return toast.error(errorText(error));
     toast.success("Saved");
@@ -240,6 +246,8 @@ function EditPersonModal({ person, onClose }: { person: Profile | null; onClose:
       <div className="space-y-4">
         <Field label="Full name"><Input value={name} onChange={(e) => setName(e.target.value)} /></Field>
         <Field label="Job title"><Input value={title} onChange={(e) => setTitle(e.target.value)} /></Field>
+        <div><span className="mb-1 block text-[12.5px] font-semibold text-slate-600">Birthday</span>
+          <BirthdayField month={bm} day={bd} onChange={(m, d) => { setBm(m); setBd(d); }} /></div>
         <Field label="Avatar colour"><ColorPicker value={color} onChange={setColor} colors={SWATCHES} /></Field>
       </div>
     </Modal>

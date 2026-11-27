@@ -12,6 +12,9 @@ export interface Profile {
   is_active: boolean;
   must_change_password: boolean;
   color: string;
+  birth_month: number | null;
+  birth_day: number | null;
+  birthday_asked: boolean;
   created_at: string;
 }
 

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, FolderKanban, ListChecks, Users, Settings, LogOut, Menu, X, UserCircle, ChevronDown, Tags, Sun, Moon, Monitor, FlaskConical } from "lucide-react";
+import { LayoutDashboard, FolderKanban, ListChecks, Users, Settings, LogOut, Menu, X, UserCircle, ChevronDown, Tags, Sun, Moon, Monitor, FlaskConical, Cake } from "lucide-react";
 import { useTheme, type ThemePref } from "../lib/theme";
 import { useAuth } from "../lib/auth";
 import { useStore } from "../lib/store";
@@ -10,6 +10,7 @@ import { Avatar, cx } from "./ui";
 import { TaskPanelHost } from "./TaskPanel";
 import { SearchBox } from "./SearchBox";
 import { InstallApp } from "./InstallApp";
+import { BirthdayOverlay, BirthdayPrompt } from "./Birthday";
 
 export function Layout() {
   const { me, signOut } = useAuth();
@@ -35,6 +36,7 @@ export function Layout() {
     { to: "/projects", label: "Projects", icon: FolderKanban },
     { to: "/workload", label: "Workload", icon: Users },
     { to: "/trials", label: "R&D Trials", icon: FlaskConical },
+    { to: "/birthdays", label: "Birthdays", icon: Cake },
     ...(me?.role === "admin" ? [{ to: "/admin", label: "Admin panel", icon: Settings }]
       : me?.role === "manager" ? [{ to: "/admin", label: "Categories", icon: Tags }] : []),
   ];
@@ -113,6 +115,8 @@ export function Layout() {
         <main className="min-w-0 flex-1 overflow-x-hidden px-4 pt-5 pb-24 sm:px-6 lg:px-8 lg:pt-6 lg:pb-8">
           <Outlet />
         </main>
+        <BirthdayPrompt />
+        <BirthdayOverlay />
       </div>
       {/* phone bottom bar */}
       <nav className="no-print fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-line bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden" aria-label="Main">

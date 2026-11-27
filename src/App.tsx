@@ -14,6 +14,7 @@ const ProjectPage = lazy(() => import("./pages/ProjectPage"));
 const MyTasks = lazy(() => import("./pages/MyTasks"));
 const Workload = lazy(() => import("./pages/Workload"));
 const Trials = lazy(() => import("./pages/Trials"));
+const Birthdays = lazy(() => import("./pages/Birthdays"));
 const Admin = lazy(() => import("./pages/Admin"));
 const Account = lazy(() => import("./pages/Account"));
 
@@ -33,6 +34,7 @@ function Gate() {
             <Route path="my-tasks" element={<MyTasks />} />
             <Route path="workload" element={<Workload />} />
             <Route path="trials" element={<Trials />} />
+            <Route path="birthdays" element={<Birthdays />} />
             <Route path="admin" element={me.role === "admin" || me.role === "manager" ? <Admin /> : <Navigate to="/" replace />} />
             <Route path="account" element={<Account />} />
             <Route path="*" element={<Navigate to="/" replace />} />

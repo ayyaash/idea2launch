@@ -2,12 +2,15 @@ import { useState } from "react";
 import { Loader2 } from "lucide-react";
 import { useAuth } from "../lib/auth";
 import { supabase, errorText } from "../lib/supabase";
+import { BirthdayField, birthdayError } from "../components/BirthdayField";
 
 /** Shown instead of the app until the person confirms their name and replaces the password their admin gave them. */
 export default function SetPassword() {
   const { me, reloadMe, signOut } = useAuth();
   const [name, setName] = useState(me && me.full_name !== me.username ? me.full_name : "");
   const [title, setTitle] = useState(me?.job_title ?? "");
+  const [bm, setBm] = useState<number | null>(me?.birth_month ?? null);
+  const [bd, setBd] = useState<number | null>(me?.birth_day ?? null);
   const [pw, setPw] = useState("");
   const [pw2, setPw2] = useState("");
   const [err, setErr] = useState("");
@@ -17,6 +20,8 @@ export default function SetPassword() {
     e.preventDefault();
     setErr("");
     if (!name.trim()) return setErr("Please enter your name.");
+    const be = birthdayError(bm, bd);
+    if (be) return setErr(be);
     if (pw.length < 8) return setErr("Use at least 8 characters.");
     if (pw !== pw2) return setErr("The two passwords don't match.");
     setBusy(true);
@@ -27,7 +32,7 @@ export default function SetPassword() {
         ? "Choose a password that's different from the one your admin gave you."
         : errorText(error));
     }
-    const { error: e1 } = await supabase.from("profiles").update({ full_name: name.trim(), job_title: title.trim() }).eq("id", me!.id);
+    const { error: e1 } = await supabase.from("profiles").update({ full_name: name.trim(), job_title: title.trim(), birth_month: bm, birth_day: bd, birthday_asked: true }).eq("id", me!.id);
     if (e1) {
       setBusy(false);
       return setErr(errorText(e1));
@@ -58,6 +63,11 @@ export default function SetPassword() {
             <input autoComplete="organization-title" value={title} onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g. R&D Engineer" className={field} />
           </label>
+          <div>
+            <span className="mb-1 block text-sm font-medium text-slate-700">Your birthday <span className="font-normal text-slate-400">(optional)</span></span>
+            <BirthdayField plain={field} month={bm} day={bd} onChange={(m, d) => { setBm(m); setBd(d); }} />
+            <span className="mt-1 block text-xs text-slate-500">Only the day and month, so the team can celebrate it. No year needed.</span>
+          </div>
           <label className="block">
             <span className="mb-1 block text-sm font-medium text-slate-700">New password</span>
             <input type="password" autoComplete="new-password" value={pw} onChange={(e) => setPw(e.target.value)} required className={field} />

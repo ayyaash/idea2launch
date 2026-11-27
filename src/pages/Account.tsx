@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../lib/auth";
+import { BirthdayField, birthdayError } from "../components/BirthdayField";
 import { useStore } from "../lib/store";
 import { supabase, errorText } from "../lib/supabase";
 import { ROLE_HELP, ROLE_LABEL, SWATCHES } from "../lib/format";
@@ -13,16 +14,20 @@ export default function Account() {
   const [name, setName] = useState("");
   const [title, setTitle] = useState("");
   const [color, setColor] = useState(SWATCHES[0]);
+  const [bm, setBm] = useState<number | null>(null);
+  const [bd, setBd] = useState<number | null>(null);
   const [pw, setPw] = useState("");
   const [pw2, setPw2] = useState("");
   const [busy, setBusy] = useState<"" | "profile" | "pw">("");
 
-  useEffect(() => { if (me) { setName(me.full_name); setTitle(me.job_title); setColor(me.color); } }, [me?.id, me?.full_name, me?.job_title, me?.color]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (me) { setName(me.full_name); setTitle(me.job_title); setColor(me.color); setBm(me.birth_month); setBd(me.birth_day); } }, [me?.id, me?.full_name, me?.job_title, me?.color, me?.birth_month, me?.birth_day]); // eslint-disable-line react-hooks/exhaustive-deps
   if (!me) return null;
 
   async function saveProfile() {
+    const be = birthdayError(bm, bd);
+    if (be) return toast.error(be);
     setBusy("profile");
-    const { error } = await supabase.from("profiles").update({ full_name: name.trim(), job_title: title.trim(), color }).eq("id", me!.id);
+    const { error } = await supabase.from("profiles").update({ full_name: name.trim(), job_title: title.trim(), color, birth_month: bm, birth_day: bd, birthday_asked: true }).eq("id", me!.id);
     setBusy("");
     if (error) return toast.error(errorText(error));
     toast.success("Profile saved");
@@ -55,6 +60,8 @@ export default function Account() {
         <div className="space-y-4">
           <Field label="Full name"><Input value={name} onChange={(e) => setName(e.target.value)} /></Field>
           <Field label="Job title"><Input value={title} onChange={(e) => setTitle(e.target.value)} /></Field>
+          <div><span className="mb-1 block text-[12.5px] font-semibold text-slate-600">Birthday</span>
+            <BirthdayField className="max-w-sm" month={bm} day={bd} onChange={(m, d) => { setBm(m); setBd(d); }} /></div>
           <Field label="Avatar colour"><ColorPicker value={color} onChange={setColor} colors={SWATCHES} /></Field>
           <Button variant="primary" loading={busy === "profile"} disabled={!name.trim()} onClick={saveProfile}>Save profile</Button>
         </div>
